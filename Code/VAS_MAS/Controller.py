@@ -5,6 +5,10 @@
 import Robot_World
 
 sensor = ['']  # TODO
+
+
+
+
 myWorld = Robot_World.World(sensor, host='127.0.0.1', port=19999)
 myRobotBrain = Robot_World.RobotBrain()
 
