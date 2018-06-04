@@ -75,8 +75,6 @@ class World(object):
         #    out.append(handle)
         #    out.append(vector)
         #    print(out)
-        #    return out
-
         return out
 
     def act(self, action):
@@ -87,21 +85,7 @@ class World(object):
         """
 
         assert isinstance(action, str)  # check if the variable is a string.
-        param = []
-        param.append(-100 * math.pi / 180)
-        param.append(-50 * math.pi / 180)
 
-        if action == 'Move':
-            operationMode = vrep.simx_opmode_blocking
-            res1, leftJointHandle = vrep.simxGetObjectHandle(self._clientID, "dr12_leftJoint_", operationMode)
-            res2, rightJointHandle = vrep.simxGetObjectHandle(self._clientID, "dr12_rightJoint_", operationMode)
-            if (vrep.simxSetJointTargetVelocity(self._clientID, leftJointHandle, param[0],
-                                                operationMode)) == vrep.simx_return_ok and (
-            vrep.simxSetJointTargetVelocity(self._clientID, rightJointHandle, param[1],
-                                            operationMode)) == vrep.simx_return_ok:
-                print('')
-            else:
-                print('problems')
         if action == 'Continue':
             operationMode = vrep.simx_opmode_blocking
             res1, leftJointHandle = vrep.simxGetObjectHandle(self._clientID, "dr12_leftJoint_", operationMode)
