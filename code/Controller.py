@@ -11,8 +11,11 @@ def job(data):
     myRobotBrain = RobotWorld.RobotBrain()
 
     while True:
+        #result = myWorld.sense()
+        #myWorld.go(5)
+        myWorld.turn(5, 0, 90)
+        exit(0)
         pass
-        #result = myWorld.sense(sensors)
         #action = myRobotBrain.think(result)
         #print(action)
         #myWorld.act(action)
@@ -23,15 +26,25 @@ leds = ["status_led", "led_1", "led_2"]
 
 # list of all the data.
 dataList = [
-    {'sensors': ["gyro_link_visual", "kinect_depth", "kinect_rgb"], # gyroscope, kinect depth and rgb.
-     'wheels': ["wheel_right_joint", "wheel_left_joint"],
-     'host':'127.0.0.1',
+    {'sensors': {
+                    "gyro": "gyro_link_visual",  # TODO
+                    "kinect_depth": "kinect_depth",
+                    "kinect_rgb": "kinect_rgb"
+                },  # gyroscope, kinect depth and rgb.
+     'wheels': {"wheel_right": "wheel_right_joint",
+                "wheel_left": "wheel_left_joint"},
+     'host': '127.0.0.1',
      'port': 19999
      },
-    {'sensors': ["gyro_link_visual#0", "kinect_depth#0", "kinect_rgb#0"],  # gyroscope, kinect depth and rgb.
-     'wheels': ["wheel_right_joint#0", "wheel_left_joint#0"],
-     'host': '127.0.0.1',
-     'port': 20000
+    {'sensors': {
+                    "gyro": "gyro_link_visual#0",
+                    "kinect_depth": "kinect_depth#0",
+                    "kinect_rgb": "kinect_rgb#0"
+                },  # gyroscope, kinect depth and rgb.
+        'wheels': {"wheel_right": "wheel_right_joint#0",
+                   "wheel_left": "wheel_left_joint#0"},
+        'host': '127.0.0.1',
+        'port': 20000
      }
 ]
 
