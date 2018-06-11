@@ -3,14 +3,16 @@
 
 """
 TO DO
-    Write a RobotWorld Python 3.5.x wrapper library with classes that encapsulates the V-REP Remote API
-    ....
+    Write a RobotWorld Python 3.6.x wrapper library with classes that encapsulates the V-REP Remote API
+    # port kobuki 1 = 19999
+    # port kobuki 2 = 20000
 """
 
 try:
     import vrep
     import math
     import random
+
 except:
     print('--------------------------------------------------------------')
     print('"vrep.py" could not be imported. This means very probably that')
@@ -40,30 +42,30 @@ class World(object):
         vrep.simxFinish(-1)  # just in case, close all opened connections.
         self._clientID = vrep.simxStart(self._host, self._port, True, True, 5000, 5)  # Connect to V-REP.
         if self._clientID == -1:  # connection error
-            print("Connection to the server was not possible")
+            print(self._port, ': Connection to the server was not possible')
         self._operation_mode = vrep.simx_opmode_blocking  # fire and forget.
         self.wheels_handles = []
         self.sensors_handles = []
 
-        print('Fetching wheels handles...')
+        print(self._port, ': Fetching wheels handles...')
         for w in wheels:  # initialize the robot.
             res, handle = vrep.simxGetObjectHandle(self._clientID, w, self._operation_mode)
             if res == vrep.simx_return_ok:
                 self.wheels_handles.append(handle)
             else:
-                print('Wheels handle error: ', res)
+                print(self._port, ': Wheels handle error: ', res)
                 exit(1)
 
-        print('Fetching sensors handles...')
+        print(self._port, ': Fetching sensors handles...')
         for s in sensors:  # initialize the robot.
             res, handle = vrep.simxGetObjectHandle(self._clientID, s, self._operation_mode)
             if res == vrep.simx_return_ok:
                 self.sensors_handles.append(handle)
             else:
-                print('Sensors handle error: ', res)
+                print(self._port, ': Sensors handle error: ', res)
                 exit(1)
 
-        print("SUCCESSFULLY FETCHED ALL HANDLES")
+        print(self._port, ": SUCCESSFULLY FETCHED ALL HANDLES")
 
     def sense(self, sensor_name):
         """
