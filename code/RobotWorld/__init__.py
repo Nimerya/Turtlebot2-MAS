@@ -1,18 +1,9 @@
-# coding :utf-8
-# deployed with Python 3.6.0
-
-"""
-TO DO
-    Write a RobotWorld Python 3.6.x wrapper library with classes that encapsulates the V-REP Remote API
-"""
-
 try:
     import vrep
     import math
     import random
     import struct
-
-except:
+except ImportError:
     print('--------------------------------------------------------------')
     print('"vrep.py" could not be imported. This means very probably that')
     print('either "vrep.py" or the remoteApi library could not be found.')
@@ -27,7 +18,7 @@ class World(object):
     Robot simulator class to communicate with the simulation environment.
     """
 
-    def __init__(self, sensors, wheels, host='127.0.0.1', port=16123):
+    def __init__(self, sensors, wheels, signals, host='127.0.0.1', port=16123):
         """
         Initialize the connection with V-REP.
         :param host: host number.
@@ -35,6 +26,7 @@ class World(object):
         """
         assert (sensors, dict)  # check if the variable is a dict.
         assert (wheels, dict)  # check if the variable is a dict.
+        assert (signals, dict)  # check if the variable is a dict.
 
         self._host = host
         self._port = port
@@ -45,7 +37,7 @@ class World(object):
         self._operation_mode = vrep.simx_opmode_blocking  # fire and forget.
         self.wheels_handles = {}
         self.sensors_handles = {}
-        self.signals = {}  # TODO ADD SIGNALS
+        self.signals = {}
 
         print(self._port, ': Fetching wheels handles...')
         for w in wheels:  # initialize the robot.
@@ -74,9 +66,9 @@ class World(object):
         :return: data.
         """
         out = []  # list.
-        data = vrep.simxGetStringSignal(self._clientID, "a", self._operation_mode) #TODO ADD SIGNAL
+        data = vrep.simxGetStringSignal(self._clientID, self.signals['gyro_signal'], self._operation_mode)
         val = struct.unpack("f", bytearray(data[1][:4]))
-        print("gyro: %.4f" % val)
+        print(self._port, ": gyro = %.4f" % val)
 
         #distanceLC = vrep.simRead(self._clientID, self.sensors_handles["gyro"], self._operation_mode)
         #print(distanceLC)
@@ -102,53 +94,49 @@ class World(object):
         #    print(out)
         return out
 
-    def act(self, action):
-        """
-        Receive a command, send an "order".
-        :param action: command.
-        :return: a command to the robot.
-        """
-
-        assert isinstance(action, str)  # check if the variable is a string.
-
-        if action == 'Continue':
-            pass
 
     def stop(self):
         """
         Stop the robot.
         """
+        print(self._port, ': stopped')
         # the second parameter is the velocity.
         vrep.simxSetJointTargetVelocity(self._clientID, self.wheels_handles["wheel_right"], 0, self._operation_mode)
         vrep.simxSetJointTargetVelocity(self._clientID, self.wheels_handles["wheel_left"], 0, self._operation_mode)
 
-    def turn(self, vel1, vel2, angle):
+    def turn(self, speedr, speedl, angle):
         """
         Turn the robot.
-        :param vel1: velocity of the first wheel.
-        :param vel2: velocity of the second wheel.
+        :param speedr: velocity of the right wheel.
+        :param speedl: velocity of the left wheel.
+        :param angle: turning angle.
         """
+        print(self._port, ': turning, angle = ', angle)
         x = 0
         while x < angle:
             # the second parameter is the velocity.
-            vrep.simxSetJointTargetVelocity(self._clientID, self.wheels_handles["wheel_right"], vel1,
-                                        self._operation_mode)
-            vrep.simxSetJointTargetVelocity(self._clientID, self.wheels_handles["wheel_left"], vel2,
-                                        self._operation_mode)
-            data = vrep.simxGetFloatSignal(self._clientID, "a", self._operation_mode)  # TODO ADD SIGNAL
-            val = struct.unpack("f", bytearray(data[1][:4]))
-            # val = vrep.simxUnpackFloats(data)
-            x = x+float(val[0])
-            print(x)
+            vrep.simxSetJointTargetVelocity(self._clientID, self.wheels_handles["wheel_right"], speedr,
+                                            self._operation_mode)
+            vrep.simxSetJointTargetVelocity(self._clientID, self.wheels_handles["wheel_left"], speedl,
+                                            self._operation_mode)
+            gyro_data = vrep.simxGetFloatSignal(self._clientID, self.signals['gyro_signal'], self._operation_mode)
+            # gyro_data_unpacked_x = struct.unpack("f", bytearray(gyro_data[1][:4]))
+            # gyro_data_unpacked_y = struct.unpack("f", bytearray(gyro_data[1][4:8]))
+            # gyro_data_unpacked_z = struct.unpack("f", bytearray(gyro_data[1][8:12]))
+            gyro_data_unpacked = vrep.simxUnpackFloatTable(gyro_data)
+            print(gyro_data_unpacked)
+            #x += gyro_data_unpacked[0]
+            #print(self._port, ': cumulative angle = ', x)
 
-    def go(self, vel):
+    def go(self, speed):
         """
         The robot go forward.
-        :param vel: velocity of both wheels.
+        :param speed: velocity of both wheels.
         """
-        vrep.simxSetJointTargetVelocity(self._clientID, self.wheels_handles["wheel_right"], vel,
+        print(self._port, ': going, speed = ', speed)
+        vrep.simxSetJointTargetVelocity(self._clientID, self.wheels_handles["wheel_right"], speed,
                                         self._operation_mode)
-        vrep.simxSetJointTargetVelocity(self._clientID, self.wheels_handles["wheel_left"], vel,
+        vrep.simxSetJointTargetVelocity(self._clientID, self.wheels_handles["wheel_left"], speed,
                                         self._operation_mode)
 
 
@@ -163,22 +151,23 @@ class RobotBrain(object):
         :param sensor_reading: result of the sense.
         :return: an action.
         """
-        self._state = self.perception(sensor_reading)
-        action = self.decision()
-        return action
+        # self._state = self.perception(sensor_reading)
+        # action = self.decision()
+        return None  # action
 
+    @staticmethod
     def perception(self, sensor_reading):
         """
         Read state and build a world representation.
         :param sensor_reading: result of the sense
         :return: state
         """
+        return None
 
-        pass
-
-    def decision(self):
+    @staticmethod
+    def decision():
         """
         The state contains the world representation.
         :return: a decision
         """
-        pass
+        return None
