@@ -2,6 +2,7 @@
 try:
     import multiprocessing
     import RobotWorld
+    import time
 except ImportError:
     print('--------------------------------------------------------------')
     print('import exception')
@@ -10,20 +11,25 @@ except ImportError:
 
 
 def job(data):
-    print(data['port'], 'started')
-    myWorld = RobotWorld.World(data['sensors'], data['wheels'], data['signals'], data['host'], data['port'])
-    myRobotBrain = RobotWorld.RobotBrain()
+    print(data['port'], 'Starting...')
+    world = RobotWorld.World(data['sensors'], data['wheels'], data['signals'], data['host'], data['port'])
+    brain = RobotWorld.RobotBrain()
 
     while True:
-        # result = myWorld.sense()
-        # myWorld.go(5)
-        myWorld.turn(0, 0, 90)
+        # result = world.sense()
+        # world.go(5)
+        world.turn(0, 1, 90)
+        world.go(5)
+        time.sleep(10)
         exit(0)
-        pass
-        # action = myRobotBrain.think(result)
+        # exit(0)
+        # action = brain.think(result)
         # print(action)
-        # myWorld.act(action)
+        # world.act(action)
 
+
+# host = '127.0.0.1'
+host = '192.168.0.2'
 
 # list of all the data.
 dataList = [
@@ -36,7 +42,7 @@ dataList = [
         'wheels': {'wheel_right': 'wheel_right_joint',
                    'wheel_left': 'wheel_left_joint'},
         'signals': {'gyro_signal': 'gyro_signal'},
-        'host': '127.0.0.1',
+        'host': host,
         'port': 19999
     },
     {
@@ -48,15 +54,15 @@ dataList = [
         'wheels': {'wheel_right': 'wheel_right_joint#0',
                    'wheel_left': 'wheel_left_joint#0'},
         'signals': {'gyro_signal': 'gyro_signal#0'},
-        'host': '127.0.0.1',
+        'host': host,
         'port': 20000
     }
 ]
 
-#pool = multiprocessing.Pool(processes=len(dataList))  # start two processes.
-#pool.map(job, dataList)  # we map each process to the input.
-#pool.close()
-#pool.join()
+pool = multiprocessing.Pool(processes=len(dataList))  # start processes
+pool.map(job, dataList)  # we map each process to the input.
+pool.close()
+pool.join()
 
 # other elements
 

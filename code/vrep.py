@@ -31,18 +31,20 @@ import struct
 import sys
 import ctypes as ct
 from vrepConst import *
+import os
 
-#load library
+# load library
 libsimx = None
 try:
+    real_path = os.path.realpath(__file__)[:-8]
     if platform.system() =='cli':
-        libsimx = ct.CDLL("./remoteApi.dll")
+        libsimx = ct.CDLL(real_path+"/remoteApi.dll")
     elif platform.system() =='Windows':
-        libsimx = ct.CDLL("./remoteApi.dll") 
+        libsimx = ct.CDLL(real_path+"/remoteApi.dll") 
     elif platform.system() == 'Darwin':
-        libsimx = ct.CDLL("./remoteApi.dylib")
+        libsimx = ct.CDLL(real_path+"/remoteApi.dylib")
     else:
-        libsimx = ct.CDLL("./remoteApi.so")
+        libsimx = ct.CDLL(real_path+"/remoteApi.so")
 except:
     print ('----------------------------------------------------')
     print ('The remoteApi library could not be loaded. Make sure')
