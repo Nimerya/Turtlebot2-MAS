@@ -2,6 +2,7 @@
 try:
     import multiprocessing
     import RobotWorld
+    import Terminal
     import time
 except ImportError:
     print('--------------------------------------------------------------')
@@ -12,8 +13,13 @@ except ImportError:
 
 def job(data):
     print(data['port'], 'Starting...')
-    world = RobotWorld.World(data['sensors'], data['wheels'], data['signals'], data['host'], data['port'])
-    brain = RobotWorld.RobotBrain()
+    try:
+        terminal = Terminal.Terminal(data['port'])
+        time.sleep(5)
+        world = RobotWorld.World(data['sensors'], data['wheels'], data['signals'], data['host'], data['port'], terminal)
+        brain = RobotWorld.RobotBrain()
+    except Exception as e:
+        print(data['port'], 'Exception: ', e)
 
     while True:
         # result = world.sense()
