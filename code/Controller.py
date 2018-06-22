@@ -1,9 +1,9 @@
-
 try:
     import multiprocessing
     import RobotWorld
     import Terminal
     import time
+
 except ImportError:
     print('--------------------------------------------------------------')
     print('import exception')
@@ -34,8 +34,8 @@ def job(data):
         # world.act(action)
 
 
-# host = '127.0.0.1'
-host = '192.168.0.2'
+host = '172.27.24.104'
+# host = '192.168.0.2'
 
 # list of all the data.
 dataList = [
@@ -70,7 +70,7 @@ pool.map(job, dataList)  # we map each process to the input.
 pool.close()
 pool.join()
 
-# other elements
 
+# other elements
 # bumpers = ['bumper_front_joint', 'bumper_right_joint', 'bumper_left_joint']
 # leds = ['status_led', 'led_1', 'led_2']
