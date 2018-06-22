@@ -4,6 +4,7 @@ try:
     import random
     import struct
     import time
+
 except ImportError:
     print('--------------------------------------------------------------')
     print('"vrep.py" could not be imported. This means very probably that')
@@ -68,6 +69,7 @@ class World:
         :return: data.
         """
         out = []  # list.
+        # reading the gyroscope.
         data = vrep.simxGetStringSignal(self._clientID, self.signals['gyro_signal'], self._operation_mode)
         val = struct.unpack("f", bytearray(data[1][:4]))
         self._term.write("{} : gyro = {0:.4f}".format(self._port, val))
@@ -139,7 +141,6 @@ class RobotBrain(object):
         # action = self.decision()
         return None  # action
 
-    @staticmethod
     def perception(self, sensor_reading):
         """
         Read state and build a world representation.
@@ -148,8 +149,7 @@ class RobotBrain(object):
         """
         return None
 
-    @staticmethod
-    def decision():
+    def decision(self):
         """
         The state contains the world representation.
         :return: a decision
