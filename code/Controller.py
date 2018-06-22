@@ -15,26 +15,20 @@ def job(data):
     print(data['port'], 'Starting...')
     try:
         terminal = Terminal.Terminal(data['port'])
-        time.sleep(5)
+        time.sleep(1)
         world = RobotWorld.World(data['sensors'], data['wheels'], data['signals'], data['host'], data['port'], terminal)
         brain = RobotWorld.RobotBrain()
     except Exception as e:
         print(data['port'], 'Exception: ', e)
 
     while True:
-        # result = world.sense()
-        # world.go(5)
-        world.turn(0, 1, 90)
-        world.go(5)
-        time.sleep(10)
-        exit(0)
-        # exit(0)
-        # action = brain.think(result)
-        # print(action)
-        # world.act(action)
+        result = world.sense()
+        action = brain.think(result)
+        terminal.write("{} : action = {}".format(data['port'], action))  # print action.
+        world.act(action)
 
 
-host = '172.27.24.104'
+host = '192.168.43.185'
 # host = '192.168.0.2'
 
 # list of all the data.

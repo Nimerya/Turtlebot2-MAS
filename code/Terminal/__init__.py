@@ -12,7 +12,7 @@ class Terminal:
         script_path = os.path.realpath(__file__)[:-20]
 
         self._id = id
-        self._pipe_path = script_path+"pipes/pipe_xterm_"+str(identifier)
+        self._pipe_path = script_path+"pipes/pipe_xterm_agent_"+str(identifier)
 
         if not os.path.exists(self._pipe_path):
             try:

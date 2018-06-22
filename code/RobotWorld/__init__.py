@@ -4,15 +4,16 @@ try:
     import random
     import struct
     import time
+    import array
 
-except ImportError:
+except ImportError as e:
     print('--------------------------------------------------------------')
     print('"vrep.py" could not be imported. This means very probably that')
     print('either "vrep.py" or the remoteApi library could not be found.')
     print('Make sure both are in the same folder as this file,')
     print('or appropriately adjust the file "vrep.py"')
     print('--------------------------------------------------------------')
-    print('')
+    print(e)
 
 
 class World:
@@ -69,10 +70,24 @@ class World:
         :return: data.
         """
         out = []  # list.
-        # reading the gyroscope.
-        data = vrep.simxGetStringSignal(self._clientID, self.signals['gyro_signal'], self._operation_mode)
-        val = struct.unpack("f", bytearray(data[1][:4]))
-        self._term.write("{} : gyro = {0:.4f}".format(self._port, val))
+        result, resolution, data = vrep.simxGetVisionSensorDepthBuffer(self._clientID,
+                                                                       self.sensors_handles['kinect_depth'],
+                                                                       self._operation_mode)
+        if result != vrep.simx_return_ok:  # checking the reading result.
+            exit(result)
+
+        out.append(self.get_depth(data))  # appending the distance depth.
+
+        #result, resolution, image = vrep.simxGetVisionSensorImage(self._clientID,
+        #                                                          self.sensors_handles['kinect_rgb'],
+        #                                                          0,
+        #                                                          vrep.simx_opmode_blocking)
+        #self._term.write(str(image[0]))
+
+        if result != vrep.simx_return_ok:  # checking the reading result.
+            exit(result)
+
+        out.append(image)
         return out
 
     def stop(self):
@@ -125,6 +140,26 @@ class World:
         vrep.simxSetJointTargetVelocity(self._clientID, self.wheels_handles["wheel_left"], speed,
                                         self._operation_mode)
 
+    def get_depth(self, matrix):
+        """
+        Get the depth camera matrix and return it.
+        :param matrix: the entire matrix
+        :return: the clean matrix.
+        """
+        # 640*480 resolution
+        depth = 100
+        for i in range(210, 430):
+            for j in range(480):
+                if matrix[i*220+j] < depth:
+                    depth = matrix[i*220+j]  # update matrix.
+        return depth
+
+    def act(self, action):
+        if action == "TURN_RIGHT":
+            self.turn(0, 2, 90)
+        else:
+            self.go(5)
+
 
 class RobotBrain(object):
 
@@ -137,9 +172,11 @@ class RobotBrain(object):
         :param sensor_reading: result of the sense.
         :return: an action.
         """
-        # self._state = self.perception(sensor_reading)
-        # action = self.decision()
-        return None  # action
+        # dali start
+        self._state = self.perception(sensor_reading)
+        action = self._state
+        #action = self.decision()
+        return action
 
     def perception(self, sensor_reading):
         """
@@ -147,11 +184,13 @@ class RobotBrain(object):
         :param sensor_reading: result of the sense
         :return: state
         """
-        return None
+        if sensor_reading[0] < 0.25:  # empirical observation.
+            return "TURN_RIGHT"
+        return "GO"
 
     def decision(self):
         """
         The state contains the world representation.
         :return: a decision
         """
-        return None
+        return True
