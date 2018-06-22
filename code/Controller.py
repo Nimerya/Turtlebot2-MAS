@@ -28,8 +28,8 @@ def job(data):
         world.act(action)
 
 
-host = '192.168.43.185'
-# host = '192.168.0.2'
+# host = '192.168.43.185'
+host = '192.168.0.2'
 
 # list of all the data.
 dataList = [

@@ -84,10 +84,10 @@ class World:
         #                                                          vrep.simx_opmode_blocking)
         #self._term.write(str(image[0]))
 
-        if result != vrep.simx_return_ok:  # checking the reading result.
-            exit(result)
+        #if result != vrep.simx_return_ok:  # checking the reading result.
+        #    exit(result)
 
-        out.append(image)
+        #out.append(image)
         return out
 
     def stop(self):
