@@ -6,6 +6,7 @@ try:
     import time
     import array
     import numpy as np
+    import redis
 
 except ImportError as e:
     print('--------------------------------------------------------------')
@@ -17,7 +18,7 @@ except ImportError as e:
     print(e)
 
 
-class World:
+class World(object):
     """
     Robot simulator class to communicate with the simulation environment.
     """
@@ -91,56 +92,6 @@ class World:
 
         return out
 
-    def stop(self):
-        """
-        Stop the robot.
-        """
-        self._term.write('{} : stopped'.format(self._port))
-        # the second parameter is the velocity.
-        vrep.simxSetJointTargetVelocity(self._clientID, self.wheels_handles["wheel_right"], 0, self._operation_mode)
-        vrep.simxSetJointTargetVelocity(self._clientID, self.wheels_handles["wheel_left"], 0, self._operation_mode)
-
-    def turn(self, speedr, speedl, angle):
-        """
-        Turn the robot.
-        giving speed to the left wheel makes the robot to turn right and vice-versa
-        :param speedr: velocity of the right wheel.
-        :param speedl: velocity of the left wheel.
-        :param angle: turning angle.
-        """
-        self._term.write('{} : turning, angle = {}'.format(self._port, angle))
-        z = 0
-        while z < angle:
-            time.sleep(1)
-            # the second parameter is the velocity.
-            vrep.simxSetJointTargetVelocity(self._clientID, self.wheels_handles["wheel_right"], speedr,
-                                            self._operation_mode)
-            vrep.simxSetJointTargetVelocity(self._clientID, self.wheels_handles["wheel_left"], speedl,
-                                            self._operation_mode)
-            gyro_data = vrep.simxGetStringSignal(self._clientID, self.signals['gyro_signal'], self._operation_mode)
-            gyro_data_unpacked_x = (struct.unpack("f", bytearray(gyro_data[1][:4]))[0] * 180) / math.pi
-            gyro_data_unpacked_y = (struct.unpack("f", bytearray(gyro_data[1][4:8]))[0] * 180) / math.pi
-            gyro_data_unpacked_z = (struct.unpack("f", bytearray(gyro_data[1][8:12]))[0] * 180) / math.pi
-            self._term.write('-------------------------------------------------------\n'
-                  '{} : X-Gyro = {} dps\n        Y-Gyro = {} dps\n        Z-Gyro = {} dps'
-                  .format(self._port, round(gyro_data_unpacked_x, 2), round(gyro_data_unpacked_y, 2),
-                          round(gyro_data_unpacked_z, 2)))
-
-            z += abs(gyro_data_unpacked_z)
-            self._term.write('{} : cumulative angle = {}'.format(self._port, z))
-        self._term.write('{} : turn completed'.format(self._port))
-
-    def go(self, speed):
-        """
-        The robot go forward.
-        :param speed: velocity of both wheels.
-        """
-        self._term.write('{} : going, speed = {}'.format(self._port, speed))
-        vrep.simxSetJointTargetVelocity(self._clientID, self.wheels_handles["wheel_right"], speed,
-                                        self._operation_mode)
-        vrep.simxSetJointTargetVelocity(self._clientID, self.wheels_handles["wheel_left"], speed,
-                                        self._operation_mode)
-
     def get_depth(self, matrix):
         """
         Get the depth camera matrix and return it.
@@ -205,19 +156,78 @@ class World:
 
                     pos_from_right = x  # we save the last x position of red.
 
+    def stop(self):
+        """
+        Stop the robot.
+        """
+        self._term.write('{} : stopped'.format(self._port))
+        # the second parameter is the velocity.
+        vrep.simxSetJointTargetVelocity(self._clientID, self.wheels_handles["wheel_right"], 0, self._operation_mode)
+        vrep.simxSetJointTargetVelocity(self._clientID, self.wheels_handles["wheel_left"], 0, self._operation_mode)
+
+    def turn(self, speedr, speedl, angle):
+        """
+        Turn the robot.
+        giving speed to the left wheel makes the robot to turn right and vice-versa
+        :param speedr: velocity of the right wheel.
+        :param speedl: velocity of the left wheel.
+        :param angle: turning angle.
+        """
+        self._term.write('{} : turning, angle = {}'.format(self._port, angle))
+        z = 0
+        while z < angle:
+            time.sleep(1)
+            # the second parameter is the velocity.
+            vrep.simxSetJointTargetVelocity(self._clientID, self.wheels_handles["wheel_right"], speedr,
+                                            self._operation_mode)
+            vrep.simxSetJointTargetVelocity(self._clientID, self.wheels_handles["wheel_left"], speedl,
+                                            self._operation_mode)
+            gyro_data = vrep.simxGetStringSignal(self._clientID, self.signals['gyro_signal'], self._operation_mode)
+            gyro_data_unpacked_x = (struct.unpack("f", bytearray(gyro_data[1][:4]))[0] * 180) / math.pi
+            gyro_data_unpacked_y = (struct.unpack("f", bytearray(gyro_data[1][4:8]))[0] * 180) / math.pi
+            gyro_data_unpacked_z = (struct.unpack("f", bytearray(gyro_data[1][8:12]))[0] * 180) / math.pi
+            self._term.write('-------------------------------------------------------\n'
+                  '{} : X-Gyro = {} dps\n        Y-Gyro = {} dps\n        Z-Gyro = {} dps'
+                  .format(self._port, round(gyro_data_unpacked_x, 2), round(gyro_data_unpacked_y, 2),
+                          round(gyro_data_unpacked_z, 2)))
+
+            z += abs(gyro_data_unpacked_z)
+            self._term.write('{} : cumulative angle = {}'.format(self._port, z))
+        self._term.write('{} : turn completed'.format(self._port))
+
+    def go(self, speed):
+        """
+        The robot go forward.
+        :param speed: velocity of both wheels.
+        """
+        self._term.write('{} : going, speed = {}'.format(self._port, speed))
+        vrep.simxSetJointTargetVelocity(self._clientID, self.wheels_handles["wheel_right"], speed,
+                                        self._operation_mode)
+        vrep.simxSetJointTargetVelocity(self._clientID, self.wheels_handles["wheel_left"], speed,
+                                        self._operation_mode)
+
     def act(self, action):
+        """
+        translates abstracted actions to elementary actiolns
+        :param action: string resembling the action to perform
+        :return:
+        """
         if action == "TURN_RIGHT":
             self.turn(0, 2, 45)
         else:
             self.go(5)
 
 
-class RobotBrain(object):
+class Brain(object):
 
-    def __init__(self):
+    def __init__(self, port):
         self._state = None
-        # start dali
-        
+
+        self._port = port
+        self._agent_name = "turtlebot_{}".format(self._port)
+        self._to_linda = redis.Redis()  # channel to linda proxy
+        self._to_linda.publish("LINDAchannel", self._agent_name+"helloWorld")
+
         exit(0)
 
     def think(self, sensor_reading):
@@ -229,7 +239,7 @@ class RobotBrain(object):
         # dali start
         self._state = self.perception(sensor_reading)
         action = self._state
-        #action = self.decision()
+        # action = self.decision()
         return action
 
     def perception(self, sensor_reading):
