@@ -29,7 +29,7 @@ def job(data):
 
 
 # host = '192.168.43.185'
-host = '192.168.0.2'
+host = '172.20.10.6'
 
 # list of all the data.
 dataList = [
