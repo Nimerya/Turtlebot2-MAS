@@ -5,6 +5,8 @@ try:
     import struct
     import time
     import array
+    import numpy as np
+    import redis
 
 except ImportError as e:
     print('--------------------------------------------------------------')
@@ -16,7 +18,7 @@ except ImportError as e:
     print(e)
 
 
-class World:
+class World(object):
     """
     Robot simulator class to communicate with the simulation environment.
     """
@@ -69,26 +71,90 @@ class World:
         Sense the world and return data.
         :return: data.
         """
-        out = []  # list.
+
+        out = {}  # list.
         result, resolution, data = vrep.simxGetVisionSensorDepthBuffer(self._clientID,
                                                                        self.sensors_handles['kinect_depth'],
                                                                        self._operation_mode)
         if result != vrep.simx_return_ok:  # checking the reading result.
             exit(result)
 
-        out.append(self.get_depth(data))  # appending the distance depth.
+        out['depth'] = self.get_depth(data)  # appending the distance depth.
 
-        #result, resolution, image = vrep.simxGetVisionSensorImage(self._clientID,
-        #                                                          self.sensors_handles['kinect_rgb'],
-        #                                                          0,
-        #                                                          vrep.simx_opmode_blocking)
-        #self._term.write(str(image[0]))
+        result, resolution, image = vrep.simxGetVisionSensorImage(self._clientID,
+                                                                  self.sensors_handles['kinect_rgb'],
+                                                                  0,
+                                                                  vrep.simx_opmode_blocking)
 
-        #if result != vrep.simx_return_ok:  # checking the reading result.
-        #    exit(result)
+        out['vision'] = self.get_vision(resolution, image)
 
-        #out.append(image)
+        self._term.write("{}".format(out))
+
         return out
+
+    def get_depth(self, matrix):
+        """
+        Get the depth camera matrix and return it.
+        :param matrix: the entire matrix
+        :return: the clean matrix.
+        """
+        # 640*480 resolution
+        depth = 100
+        for i in range(210, 430):
+            for j in range(480):
+                if matrix[i*220+j] < depth:
+                    depth = matrix[i*220+j]  # update matrix.
+        return depth
+
+    def get_vision(self, resolution, image):
+
+        image = np.array(image, dtype=np.uint8)
+        section = int(resolution[0]/3)  # x section: partitioning on the x
+        sectiony = int(resolution[1]/3)  # y section: partitioning on the Y
+        detected_color = "NONE"
+        position = "NONE"
+        colors = 3
+        # the len of the image is 921600 = 640x480x3 => this means that each 3 values is a pixel
+        # red = 200,41,41
+        # green = 72,233,72
+
+        pos_from_left = None
+        pos_from_right = None
+
+        for x in range(resolution[0]-3):
+            for y in range(sectiony, sectiony*2):
+                r = image[colors * (y * resolution[0] + x)]
+                g = image[colors * (y * resolution[0] + x) + 1]
+                b = image[colors * (y * resolution[0] + x) + 2]
+                if (r == 0 or g == 0 or b == 0) and pos_from_right is None:  # if black
+                    continue
+                elif (r == 0 or g == 0 or b == 0) and pos_from_right is not None:  # pos from right is final, i can exit
+                    avg = (pos_from_left + pos_from_right) / 2  # the center of mass.
+
+                    if avg < section:
+                        position = "LEFT"
+                    elif avg > section * 2:
+                        position = "RIGHT"
+                    else:
+                        position = "CENTER"
+
+                    return detected_color, position
+
+                if g > 190:  # we detect green.
+                    detected_color = "GREEN"
+
+                    if pos_from_left is None:  # we save the first x position of green.
+                        pos_from_left = x
+
+                    pos_from_right = x  # we save the last x position of green.
+
+                elif r > 190:  # we detect red.
+                    detected_color = "RED"
+
+                    if pos_from_left is None:  # we save the first x position of red.
+                        pos_from_left = x
+
+                    pos_from_right = x  # we save the last x position of red.
 
     def stop(self):
         """
@@ -140,31 +206,29 @@ class World:
         vrep.simxSetJointTargetVelocity(self._clientID, self.wheels_handles["wheel_left"], speed,
                                         self._operation_mode)
 
-    def get_depth(self, matrix):
-        """
-        Get the depth camera matrix and return it.
-        :param matrix: the entire matrix
-        :return: the clean matrix.
-        """
-        # 640*480 resolution
-        depth = 100
-        for i in range(210, 430):
-            for j in range(480):
-                if matrix[i*220+j] < depth:
-                    depth = matrix[i*220+j]  # update matrix.
-        return depth
-
     def act(self, action):
+        """
+        translates abstracted actions to elementary actiolns
+        :param action: string resembling the action to perform
+        :return:
+        """
         if action == "TURN_RIGHT":
-            self.turn(0, 2, 90)
+            self.turn(0, 2, 45)
         else:
             self.go(5)
 
 
-class RobotBrain(object):
+class Brain(object):
 
-    def __init__(self):
+    def __init__(self, port):
         self._state = None
+
+        self._port = port
+        self._agent_name = "turtlebot_{}".format(self._port)
+        self._to_linda = redis.Redis()  # channel to linda proxy
+        self._to_linda.publish("LINDAchannel", self._agent_name+"helloWorld")
+
+        exit(0)
 
     def think(self, sensor_reading):
         """
@@ -175,7 +239,7 @@ class RobotBrain(object):
         # dali start
         self._state = self.perception(sensor_reading)
         action = self._state
-        #action = self.decision()
+        # action = self.decision()
         return action
 
     def perception(self, sensor_reading):
@@ -184,7 +248,7 @@ class RobotBrain(object):
         :param sensor_reading: result of the sense
         :return: state
         """
-        if sensor_reading[0] < 0.25:  # empirical observation.
+        if sensor_reading['depth'] < 0.25:  # empirical observation.
             return "TURN_RIGHT"
         return "GO"
 

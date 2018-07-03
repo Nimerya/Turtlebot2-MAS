@@ -3,6 +3,7 @@ try:
     import RobotWorld
     import Terminal
     import time
+    import subprocess
 
 except ImportError:
     print('--------------------------------------------------------------')
@@ -17,7 +18,7 @@ def job(data):
         terminal = Terminal.Terminal(data['port'])
         time.sleep(1)
         world = RobotWorld.World(data['sensors'], data['wheels'], data['signals'], data['host'], data['port'], terminal)
-        brain = RobotWorld.RobotBrain()
+        brain = RobotWorld.Brain(data['port'])
     except Exception as e:
         print(data['port'], 'Exception: ', e)
 
@@ -28,8 +29,7 @@ def job(data):
         world.act(action)
 
 
-# host = '192.168.43.185'
-host = '192.168.0.2'
+host = '192.168.43.185'
 
 # list of all the data.
 dataList = [
@@ -59,6 +59,8 @@ dataList = [
     }
 ]
 
+# subprocess.call(["sh", "./DALI/TURTLEBOT-MAS/startmas.sh"])
+# subprocess.call(["python3", "./LindaProxy/Redis2LINDA.py"])
 pool = multiprocessing.Pool(processes=len(dataList))  # start processes
 pool.map(job, dataList)  # we map each process to the input.
 pool.close()
