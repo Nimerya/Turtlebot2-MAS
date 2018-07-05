@@ -6,9 +6,57 @@
 
 :- use_module(library(sockets)).
 
+:- dynamic vision/2.
+:- dynamic depth/1.
+:- dynamic load/1.
+
+% example
+vision(red, right).
+depth(far).
+load(full).
+
+% listen for redis events, for each received message from
+% redis assert a perception predicate containing the body of the message
 redisE(X) :>
-    mas_send('aaaaaaaaaaaa'),
-    print('Redis told me: '),
+    print('Perception from redis: '),
     pulisciStringa(X, Prolog),
     print(Prolog),
-    nl.
+    nl,
+    assert(Prolog).
+
+% if the unit sees the red conveyor belt and it is empty
+go_to_red(Y) :- vision(red, Y), load(empty).
+go_to_redI(Y) :> retractall(vision(_,_)),
+                 retractall(depth(_)),
+                 retractall(load(_)),
+                 mas_send(Y).
+
+% if the unit sees the green conveyor belt and it is full
+go_to_green(Y) :- vision(green, Y), load(full).
+go_to_greenI(Y) :> retractall(vision(_,_)),
+                   retractall(depth(_)),
+                   retractall(load(_)),
+                   mas_send(Y).
+
+% if the unit is in the load/unload position then stop
+stop :- vision(green, _), load(full), depth(near).
+stop :- vision(red, _), load(empty), depth(near).
+stopI :> retractall(vision(_,_)),
+         retractall(depth(_)),
+         retractall(load(_)),
+         mas_send('stop').
+
+% if the unit is too near to an obstacle, avoid it
+% TODO fix this
+avoid_obstacle :- vision(none, none), depth(near).
+avoid_obstacleI :> retractall(vision(_,_)),
+                   retractall(depth(_)),
+                   retractall(load(_)),
+                   mas_send('right').
+
+% if the unit has no vision in his dof -> wander around
+wander_around :- vision(none, none), depth(far).
+wander_aroundI :> retractall(vision(_,_)),
+                  retractall(depth(_)),
+                  retractall(load(_)),
+                  mas_send('right').
