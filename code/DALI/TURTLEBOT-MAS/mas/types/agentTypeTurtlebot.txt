@@ -1,0 +1,14 @@
+:- use_module(library(file_systems)).
+:- use_module(library(system)).
+
+:- compile('../mas/redis_client.pl').
+:- compile('../../stringESE.pl').
+
+:- use_module(library(sockets)).
+
+redisE(X) :>
+    mas_send('aaaaaaaaaaaa'),
+    print('Redis told me: '),
+    pulisciStringa(X, Prolog),
+    print(Prolog),
+    nl.

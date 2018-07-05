@@ -1,35 +1,18 @@
 try:
     import multiprocessing
+    import redis
     import RobotWorld
     import Terminal
     import time
     import subprocess
 
-except ImportError:
+except ImportError as e:
     print('--------------------------------------------------------------')
-    print('import exception')
+    print('import exception ', e)
     print('--------------------------------------------------------------')
-    print('')
 
 
-def job(data):
-    print(data['port'], 'Starting...')
-    try:
-        terminal = Terminal.Terminal(data['port'])
-        time.sleep(1)
-        world = RobotWorld.World(data['sensors'], data['wheels'], data['signals'], data['host'], data['port'], terminal)
-        brain = RobotWorld.Brain(data['port'])
-    except Exception as e:
-        print(data['port'], 'Exception: ', e)
-
-    while True:
-        result = world.sense()
-        action = brain.think(result)
-        terminal.write("{} : action = {}".format(data['port'], action))  # print action.
-        world.act(action)
-
-
-#host = '192.168.43.185'
+# host = '192.168.43.185'
 host = '127.0.0.1'
 
 
@@ -61,14 +44,31 @@ dataList = [
     }
 ]
 
-# subprocess.call(["sh", "./DALI/TURTLEBOT-MAS/startmas.sh"])
-# subprocess.call(["python3", "./LindaProxy/Redis2LINDA.py"])
-pool = multiprocessing.Pool(processes=len(dataList))  # start processes
-pool.map(job, dataList)  # we map each process to the input.
-pool.close()
-pool.join()
+
+def job(data):
+    print(data['port'], 'Starting...')
+    try:
+        terminal = Terminal.Terminal(data['port'])
+        time.sleep(1)
+        world = RobotWorld.World(data['sensors'], data['wheels'], data['signals'], data['host'], data['port'], terminal)
+        brain = RobotWorld.Brain(data['port'], terminal)
+    except Exception as e:
+        print(data['port'], 'Exception: ', e)
+
+    while True:
+        result = world.sense()
+        action = brain.think(result)
+        terminal.write("{} : action = {}".format(data['port'], action))  # print action.
+        world.act(action)
 
 
-# other elements
-# bumpers = ['bumper_front_joint', 'bumper_right_joint', 'bumper_left_joint']
-# leds = ['status_led', 'led_1', 'led_2']
+def main():
+    pool = multiprocessing.Pool(processes=len(dataList))  # start processes#
+    pool.map(job, dataList)  # we map each process to the input.
+    pool.close()
+    pool.join()
+
+
+if __name__ == "__main__":
+    main()
+

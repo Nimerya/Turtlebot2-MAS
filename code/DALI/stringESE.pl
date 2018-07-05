@@ -12,61 +12,61 @@ sostituisci(Tolgo, Metto) :- % Sostituisce Tolgo con Metto dentro la lista memor
 pulisciSpazi(L) :- % Ripristina gli spazi
 	(foreach(Elem, L) do 
 		(Elem is 79 -> print(Elem), sostituisci(79, 32); % 79 è O in ASCII, 32 è lo spazio in ASCII
-		print('...'))
+		print(''))
 	).
 
 pulisciParTonAp(L) :- % Ripristina le (
 	(foreach(Elem, L) do 
 		(Elem is 65 -> print(Elem), sostituisci(65, 40); % 65 è A in ASCII, 40 è la parentesi tonda aperta in ASCII
-		 print('...'))
+		 print(''))
 	).
 
 pulisciParTonCh(L) :- % Ripristina le )
 	(foreach(Elem, L) do 
 		(Elem is 66 -> print(Elem), sostituisci(66, 41); % 66 è B in ASCII, 41 è la parentesi tonda chiusa in ASCII
-		 print('...'))
+		 print(''))
 	).
 
 pulisciParQuAp(L) :- % Ripristina le [
 	(foreach(Elem, L) do 
 		(Elem is 67 -> print(Elem), sostituisci(67, 91); % 67 è C in ASCII, 91 è la parentesi quadra aperta in ASCII
-		 print('...'))
+		 print(''))
 	).
 
 pulisciParQuCh(L) :- % Ripristina le ]
 	(foreach(Elem, L) do 
 		(Elem is 68 -> print(Elem), sostituisci(68, 93); % 68 è D in ASCII, 93 è la parentesi quadra chiusa in ASCII
-		 print('...'))
+		 print(''))
 	).
 
 pulisciPunti(L) :- % Ripristina i punti
 	(foreach(Elem, L) do 
 		(Elem is 69 -> print(Elem), sostituisci(69, 46); % 69 è E in ASCII, 46 è il punto in ASCII
-		print('...'))
+		print(''))
 	).
 
 pulisciVirgole(L) :- % Ripristina le virgole
 	(foreach(Elem, L) do 
 		(Elem is 70 -> print(Elem), sostituisci(70, 44); % 70 è F in ASCII, 44 è la virgola in ASCII
-		print('...'))
+		print(''))
 	).
 
 pulisciSlash(L) :- % Ripristina gli slash
 	(foreach(Elem, L) do 
 		(Elem is 71 -> print(Elem), sostituisci(71, 47); % 71 è G in ASCII, 47 è lo slash in ASCII
-		print('...'))
+		print(''))
 	).
 
 pulisciBackSlash(L) :- % Ripristina gli slash
 	(foreach(Elem, L) do 
 		(Elem is 72 -> print(Elem), sostituisci(72, 92); % 72 è H in ASCII, 92 è lo back-slash in ASCII
-		print('...'))
+		print(''))
 	).
 
 pulisciApici(L) :- % Ripristina gli apici
 	(foreach(Elem, L) do 
 		(Elem is 73 -> print(Elem), sostituisci(73, 39); % 73 è I in ASCII, 39 è apice in ASCII
-		print('...'))
+		print(''))
 	).
 
 pulisciStringa(At, Z) :-
@@ -75,6 +75,6 @@ pulisciStringa(At, Z) :-
 	assert(ris(L)),
 	pulisciSpazi(L), pulisciParTonAp(L), pulisciParTonCh(L), pulisciParQuAp(L), pulisciParQuCh(L),
 	pulisciPunti(L), pulisciVirgole(L), pulisciSlash(L), pulisciBackSlash(L), pulisciApici(L),
-	ris(X), name(Z,X), print(Z).
+	ris(X), name(Z,X).
 
 

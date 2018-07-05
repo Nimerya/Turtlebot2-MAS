@@ -51,6 +51,6 @@ for item in pubsub.listen():
         msg = msg[14:]
 
         atomic = makeAtomic(msg)
-        print('evento redis')
+        print('-- redis event ---')
         print('addressee: {}, message: {}, atomic: {}'.format(addressee, msg, atomic))
         L.send_message(addressee, "redis(" + atomic + ")")

@@ -220,15 +220,35 @@ class World(object):
 
 class Brain(object):
 
-    def __init__(self, port):
+    def __init__(self, port, terminal):
         self._state = None
-
+        
         self._port = port
         self._agent_name = "turtlebot_{}".format(self._port)
-        self._to_linda = redis.Redis()  # channel to linda proxy
-        self._to_linda.publish("LINDAchannel", self._agent_name+"helloWorld")
+        self._topic = "fromMAS"
+        self._term = terminal
 
-        exit(0)
+        self._to_linda = redis.Redis()  # channel to linda proxy
+        self._from_linda = redis.Redis(host='127.0.0.1', port=6379)  # channel from linda
+        sub = self._from_linda.pubsub()
+        sub.subscribe(self._topic)
+
+        self._term.write("subbed to topic: {}".format(self._topic))
+
+        # publish
+        # self._to_linda.publish("LINDAchannel", self._agent_name+"helloWorld")
+
+        # sub + read
+        # from_linda = redis.Redis(host='127.0.0.1', port=6379)  # channel from linda
+        # sub = from_linda.pubsub()
+        # sub.subscribe('fromMAS')
+        #
+        # print('listening for messages from MAS...')
+        # for item in sub.listen():
+        #    print(item)
+        #    if item['type'] == 'message':
+        #        msg = item['data']
+        #        print(msg)
 
     def think(self, sensor_reading):
         """
