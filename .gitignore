@@ -111,3 +111,7 @@ Code/VAS_MAS/Robot_World/\.idea/
 \.idea/
 
 code/\.idea/
+
+\.vscode/
+
+code/DALI/TURTLEBOT-MAS/startmas\.sh
