@@ -63,7 +63,7 @@ def job(data):
 
 
 def main():
-    pool = multiprocessing.Pool(processes=len(dataList))  # start processes#
+    pool = multiprocessing.Pool(processes=len(dataList))  # start processes
     pool.map(job, dataList)  # we map each process to the input.
     pool.close()
     pool.join()

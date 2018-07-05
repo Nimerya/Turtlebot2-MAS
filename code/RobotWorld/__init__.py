@@ -107,6 +107,12 @@ class World(object):
         return depth
 
     def get_vision(self, resolution, image):
+        """
+        Compute the position of red/green object in the scene.
+        :param resolution: Resolution of the camera.
+        :param image: Seen image.
+        :return: Return a tuple containing the detected color and the position.
+        """
 
         image = np.array(image, dtype=np.uint8)
         section = int(resolution[0]/3)  # x section: partitioning on the x
@@ -222,16 +228,17 @@ class Brain(object):
 
     def __init__(self, port, terminal):
         self._state = None
+        self._load = "full"  # the robot have no package on the top.
         
-        self._port = port
-        self._agent_name = "turtlebot_{}".format(self._port)
-        self._topic = "fromMAS"
+        self._port = port  # robot port.
+        self._agent_name = "turtlebot_{}".format(self._port)  # name of the agent.
+        self._topic = "fromMAS"  # communication topic (from DALI to me).
         self._term = terminal
 
-        self._to_linda = redis.Redis()  # channel to linda proxy
-        self._from_linda = redis.Redis(host='127.0.0.1', port=6379)  # channel from linda
-        sub = self._from_linda.pubsub()
-        sub.subscribe(self._topic)
+        self._to_linda = redis.Redis()  # is the channel object to the proxy.
+        self._from_linda = redis.Redis(host='127.0.0.1', port=6379)  # channel from linda (proxy).
+        self._sub = self._from_linda.pubsub()
+        self._sub.subscribe(self._topic)
 
         self._term.write("subbed to topic: {}".format(self._topic))
 
@@ -256,10 +263,11 @@ class Brain(object):
         :param sensor_reading: result of the sense.
         :return: an action.
         """
-        # dali start
-        self._state = self.perception(sensor_reading)
-        action = self._state
-        # action = self.decision()
+        self._state, result = self.perception(sensor_reading)
+        if result == 0:  # the world is changed, we have to call DALI.
+            action = self.decision()
+        else:  # the world no changed.
+            action = self.ground_decision(sensor_reading)
         return action
 
     def perception(self, sensor_reading):
@@ -268,13 +276,65 @@ class Brain(object):
         :param sensor_reading: result of the sense
         :return: state
         """
-        if sensor_reading['depth'] < 0.25:  # empirical observation.
-            return "TURN_RIGHT"
-        return "GO"
+
+        predicate = []  # we build the predicate.
+        result = None
+        # 0 if the new state if different from the previous one, 1 otherwise
+
+        predicate.append(sensor_reading['vision'][0].lower())  # all to lower case.
+        predicate.append(sensor_reading['vision'][1].lower())  # all to lower case.
+        predicate.append(sensor_reading['depth'].lower())  # all to lower case.
+        predicate.append(self._load.lower())
+
+        if self.compare_states(predicate, self._state):  # the world changed.
+            result = 0
+        else:
+            result = 1
+
+        return self._state, result
 
     def decision(self):
         """
         The state contains the world representation.
         :return: a decision
         """
-        return True
+        action = ""
+
+        message = "vision("+self._state[0]+","+self._state[1]+")."
+        # publishing.
+        self._to_linda.publish("LINDAchannel", self._agent_name+message)
+
+        # publishing.
+        message = "depth("+self._state[2]+")."
+        self._to_linda.publish("LINDAchannel", self._agent_name+message)
+
+        # publishing.
+        message = "load("+self._state[3]+")."
+        self._to_linda.publish("LINDAchannel", self._agent_name + message)
+
+        print('listening for decision from MAS...')
+        for item in self._sub.listen():
+            if item['type'] == 'message':
+                action = item['data']
+                print(action)
+        return action
+
+    def ground_decision(self, sensor_reading):
+        """
+        The robot has to avoid collisions.
+        :return: a decision.
+        """
+
+        if sensor_reading['depth'] > 0.25:
+            return "TURN_RIGHT"
+        return "GO"
+
+    def compare_states(self, new_state, old_state):
+
+        if old_state[0] != new_state[0] or old_state[1] != new_state[1] or old_state[3] != new_state[3]:
+            return True
+        else:
+            if(new_state[2] - old_state[2]) > 0.2:  # todo: check threshold
+                return True
+            else:
+                return False
