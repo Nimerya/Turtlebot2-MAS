@@ -15,7 +15,6 @@ except ImportError as e:
 # host = '192.168.43.185'
 host = '127.0.0.1'
 
-
 # list of all the data.
 dataList = [
     {
@@ -57,8 +56,9 @@ def job(data):
 
     while True:
         result = world.sense()
-        action = brain.think(result)
-        terminal.write("{} : action = {}".format(data['port'], action))  # print action.
+        # action = brain.think(result)
+        action = "GO#"
+        # terminal.write("action = {}".format(action))  # print action.
         world.act(action)
 
 
