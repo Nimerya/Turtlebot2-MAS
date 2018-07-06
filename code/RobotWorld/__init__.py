@@ -364,14 +364,13 @@ class Brain(object):
         The state contains the world representation.
         :return: a decision
         """
-        message = "vision("+self._state[0]+","+self._state[1]+")."
-        self._to_linda.publish("LINDAchannel", self._agent_name + message)
+        vision = "vision("+self._state[0]+","+self._state[1]+")."
+        depth = "depth("+self._state[2]+")."
+        load = "load("+self._state[3]+")."
 
-        message = "depth("+self._state[2]+")."
-        self._to_linda.publish("LINDAchannel", self._agent_name + message)
+        message = "{} {} {}".format(vision, depth, load)
 
-        message = "load("+self._state[3]+")."
-        self._to_linda.publish("LINDAchannel", self._agent_name + message)
+        self._to_linda.publish("LINDAchannel", self._agent_name +':'+ message)
 
         self._term.write('listening for decision from MAS...')
         for item in self._sub.listen():
@@ -385,7 +384,7 @@ class Brain(object):
         The robot has to avoid collisions.
         :return: a decision.
         """
-
+        # TODO
         if sensor_reading['depth'] > 0.10:
             return "TURN_RIGHT"
         return "GO"

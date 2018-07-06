@@ -1,6 +1,5 @@
 :- use_module(library(file_systems)).
 :- use_module(library(system)).
-:- use_module(library(sockets)).
 
 :- compile('../mas/redis_client.pl').
 :- compile('../../stringESE.pl').
@@ -9,44 +8,23 @@
 :- dynamic depth/1.
 :- dynamic load/1.
 
-% example
-vision(red, right).
+% received message must be of the form 'predicate. predicate. ...'
 
-depth(far).
-load(full).
-
-% listen for redis events, for each received message from
-% redis assert a perception predicate containing the body of the message
-redisE(X) :> print('Perception from redis: '),
+% external event triggered by the arrival of a message
+redisE(X) :> print('Received message: '),
              pulisciStringa(X, Clean),
-             print(Clean),
-             nl,
-             assert(Clean).
+             print(Clean), nl, addKnowledge(Clean).
 
-% if the unit sees the red conveyor belt and it is empty
-go_to_red(Y) :- vision(red, Y), load(empty).
-go_to_redI(Y) :> answer(Y).
+% add information to the kb by creating a new .pl file and compiling it
+addKnowledge(S) :-
+    open('addedKnowledge.pl', write, W),
+    write(W, S),
+    close(W),
+    compile('addedKnowledge.pl').
 
-% if the unit sees the green conveyor belt and it is full
-go_to_green(Y) :- vision(green, Y), load(full).
-go_to_greenI(Y) :> answer(Y).
-
-% if the unit is in the load/unload position then stop
-stop :- vision(green, center), load(full), depth(near).
-stop :- vision(red, center), load(empty), depth(near).
-stopI :> answer('stop').
-
-% if the unit is too near to an obstacle, avoid it
-% TODO fix this
-avoid_obstacle :- vision(none, none), depth(near).
-avoid_obstacleI :> answer('right').
-
-% if the unit has no vision in his dof -> wander around
-wander_around :- vision(none, none), depth(far).
-wander_aroundI :> answer('right').
-
-% incapsulates the answer that will be sent back to the python engine
-answer(X) :- retractall(vision(_,_)),
+% incapsulate the answer procedure (send and kb cleaning)
+answer(X) :- mas_send(X),
+             retractall(vision(_,_)),
              retractall(depth(_)),
-             retractall(load(_)),
-             mas_send(X).
+             retractall(load(_)).
+

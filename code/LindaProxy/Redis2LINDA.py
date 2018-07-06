@@ -45,11 +45,11 @@ print('listening on LINDAchannel...')
 for item in pubsub.listen():
     if item['type']=='message':
         msg = item['data'].decode('utf-8')
+        separator = msg.index(':')
         # get addressee
-        addressee = msg[:14]
+        addressee = msg[:separator]
         # remove addressee from the message body
-        msg = msg[14:]
-
+        msg = msg[separator+1:]
         atomic = makeAtomic(msg)
         print('-- redis event ---')
         print('addressee: {}, message: {}, atomic: {}'.format(addressee, msg, atomic))
