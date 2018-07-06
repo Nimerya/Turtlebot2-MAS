@@ -12,3 +12,4 @@ mas_send(X):-
 mas_connect_conf(Host, Channel) :-
     retract(connect_conf(_,_)),
     assert(connect_conf(Host, Channel)).
+    

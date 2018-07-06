@@ -27,6 +27,7 @@ def makeAtomic(s):
     out = out.replace('\\', 'H')
     out = out.replace("'", 'I')
     out = out.replace(' ', 'O')
+    out = out.replace(':', 'J')
     return out
 
 # Canale di comunicazione da Redis a LINDA e da LINDA al MAS.
@@ -51,6 +52,8 @@ for item in pubsub.listen():
         # remove addressee from the message body
         msg = msg[separator+1:]
         atomic = makeAtomic(msg)
-        print('-- redis event ---')
-        print('addressee: {}, message: {}, atomic: {}'.format(addressee, msg, atomic))
+        print('--- redis event ---')
+        print('addressee: {}'.format(addressee))
+        print('message: {}'.format(msg))
+        print('atomic: {}'.format(atomic))
         L.send_message(addressee, "redis(" + atomic + ")")

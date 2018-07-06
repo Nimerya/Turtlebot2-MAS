@@ -2,12 +2,13 @@
 :- use_module(library(system)).
 
 :- compile('../mas/redis_client.pl').
-:- compile('../mas/stringESE.pl').
+:- compile('../mas/stringESE').
 
 :- dynamic vision/2.
 :- dynamic depth/1.
 :- dynamic load/1.
 :- dynamic agentname/1.
+
 
 % obstacle avoidance: if the unit has somthing near that is not the target
 avoid :- depth(near), not(vision(_,near)).
@@ -42,13 +43,14 @@ redisE(X) :> print('Received message: '),
              print(Clean), nl, addKnowledge(Clean).
 
 % add information to the kb by creating a new .pl file and compiling it
-addKnowledge(S) :- open('addedKnowledge.pl', write, W),
-                   write(W, S),
-                   close(W),
-                   compile('addedKnowledge.pl').
+addKnowledge(S) :-
+    open('addedKnowledge.pl', write, W),
+    write(W, S),
+    close(W),
+    compile('addedKnowledge.pl').
 
 % incapsulate the answer procedure (send and kb cleaning)
-answer(X) :- agentname(N),
+answer(X) :- name(N),
              append(N,X,Res),
              mas_send(Res),
              print('action: '),
