@@ -69,12 +69,18 @@ pulisciApici(L) :- % Ripristina gli apici
 		print(''))
 	).
 
+pulisciDuePunti(L) :- % Ripristina i due punti
+	(foreach(Elem, L) do 
+		(Elem is 74 -> print(''), sostituisci(74, 58); % 74 è J in ASCII, 58 è due punti in ASCII
+		print(''))
+	).
+
 pulisciStringa(At, Z) :-
 	name(At, L),
 	retract(ris(_)),
 	assert(ris(L)),
 	pulisciSpazi(L), pulisciParTonAp(L), pulisciParTonCh(L), pulisciParQuAp(L), pulisciParQuCh(L),
-	pulisciPunti(L), pulisciVirgole(L), pulisciSlash(L), pulisciBackSlash(L), pulisciApici(L),
+	pulisciPunti(L), pulisciVirgole(L), pulisciSlash(L), pulisciBackSlash(L), pulisciApici(L), pulisciDuePunti(L),
 	ris(X), name(Z,X).
 
 

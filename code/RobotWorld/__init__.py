@@ -29,10 +29,7 @@ class World(object):
         :param host: host number.
         :param port: port number.
         """
-        assert (sensors, dict)  # check if the variable is a dict.
-        assert (wheels, dict)  # check if the variable is a dict.
-        assert (signals, dict)  # check if the variable is a dict.
-
+        self._turning_speed = 1
         self._host = host
         self._port = port
         self._term = terminal
@@ -137,7 +134,7 @@ class World(object):
         if color == "NONE":
             return color, position
 
-        if blob_data[6] * blob_data[7] >= 0.90:
+        if blob_data[6] * blob_data[7] >= 0.85:
             return color, "NEAR"
 
         if 0.33 < blob_data[4] < 0.66:
@@ -300,15 +297,32 @@ class World(object):
         :param action: string resembling the action to perform
         :return:
         """
-        if action == "TURN_RIGHT":
-            self.turn(0, 2, 45)
-        else:
-            self.go(2)
+        try:
+            separator = action.index(':')
+        except Exception as e:
+            self.stop()
+            return
+        
+        value = int(action[separator+1:])
+        action = action[:separator]
+
+        if action == 'go':
+            self.go(value)
+            return
+        
+        if action == 'right':
+            self.turn(0, self._turning_speed, value)
+            return
+        
+        if action == 'left':
+            self.turn(self._turning_speed, 0, value)
+            return
 
 
 class Brain(object):
 
     def __init__(self, port, terminal):
+        self._depth_treshold = 0.15
         self._state = None
         self._load = "empty"  # the robot have no package on the top.
         
@@ -330,8 +344,8 @@ class Brain(object):
         :param sensor_reading: result of the sense.
         :return: an action.
         """
-        self._state, result = self.perception(sensor_reading)
-        if result == 0:  # the world is changed, we have to call DALI.
+        self._state, changed = self.perception(sensor_reading)
+        if changed:  # the world is changed, we have to call DALI.
             action = self.decision()
         else:  # the world no changed.
             action = self.ground_decision(sensor_reading)
@@ -344,20 +358,21 @@ class Brain(object):
         :return: state
         """
         predicate = []  # we build the predicate.
-        result = None
-        # 0 if the new state if different from the previous one, 1 otherwise
+        changed = None
+        # True if the new state if different from the previous one, 1 otherwise
 
         predicate.append(sensor_reading['vision'][0].lower())  # all to lower case.
         predicate.append(sensor_reading['vision'][1].lower())  # all to lower case.
-        predicate.append(sensor_reading['depth'].lower())  # all to lower case.
+        predicate.append(sensor_reading['depth'])
         predicate.append(self._load.lower())
 
-        if self.compare_states(predicate, self._state):  # the world changed.
-            result = 0
-        else:
-            result = 1
+        # the world changed.
+        if self._state is None:
+            self._state = predicate.copy()
+    
+        changed = self.compare_states(self._state, predicate)
 
-        return self._state, result
+        return self._state, changed
 
     def decision(self):
         """
@@ -365,17 +380,27 @@ class Brain(object):
         :return: a decision
         """
         vision = "vision("+self._state[0]+","+self._state[1]+")."
-        depth = "depth("+self._state[2]+")."
-        load = "load("+self._state[3]+")."
+        if self._state[2] > self._depth_treshold:
+            depth = "depth(far)."
+        else:
+            depth = "depth(near)."
 
-        message = "{} {} {}".format(vision, depth, load)
+        load = "load("+self._state[3]+")."
+        name = "agentname("+str(self._port)+":)."
+
+        message = "{} {} {} {}".format(vision, depth, load, name)
 
         self._to_linda.publish("LINDAchannel", self._agent_name +':'+ message)
 
         self._term.write('listening for decision from MAS...')
         for item in self._sub.listen():
             if item['type'] == 'message':
-                action = item['data']
+                msg = item['data']
+                separator = msg.index(':')
+                name = int(msg[:separator])
+                if name != self._port:
+                    continue
+                action = msg[separator+1:]
                 self._term.write('received action: {}'.format(action))
         return action
 
@@ -384,14 +409,10 @@ class Brain(object):
         The robot has to avoid collisions.
         :return: a decision.
         """
-        # TODO
-        if sensor_reading['depth'] > 0.10:
-            return "TURN_RIGHT"
-        return "GO"
+        if sensor_reading['depth'] <= self._depth_treshold:
+            return "right:90"
+        return "go:2"
 
-    def compare_states(self, new_state, old_state):
-
-        if old_state[0] != new_state[0] or old_state[1] != new_state[1] or old_state[3] != new_state[3]:
-            return True
-        else:
-            return (new_state[2] - old_state[2]) > 0.2
+    def compare_states(self, old_state, new_state):
+        return old_state[0] != new_state[0] or old_state[1] != new_state[1] or old_state[3] != new_state[3] or ((new_state[2] - old_state[2]) > 0.2)
+        

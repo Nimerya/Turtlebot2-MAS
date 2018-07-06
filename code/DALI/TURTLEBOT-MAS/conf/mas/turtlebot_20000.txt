@@ -1,0 +1,1 @@
+agent('work/turtlebot_20000','turtlebot_20000','no',italian,['conf/communication'],['/Users/valentina/DALI/src/communication_fipa','/Users/valentina/DALI/src/learning','/Users/valentina/DALI/src/planasp'],'no','/Users/valentina/DALI/src/onto/dali_onto.txt',[]).
