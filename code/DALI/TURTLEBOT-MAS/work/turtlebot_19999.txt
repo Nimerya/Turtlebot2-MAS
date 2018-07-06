@@ -2,56 +2,29 @@
 :- use_module(library(system)).
 
 :- compile('../mas/redis_client.pl').
-:- compile('../mas/stringESE').
+:- compile('../mas/stringESE.pl').
 
-:- dynamic vision/2.
-:- dynamic depth/1.
-:- dynamic load/1.
+:- dynamic vision/2. 
+:- dynamic depth/1. 
+:- dynamic load/1. 
 :- dynamic agentname/1.
 
-
-% obstacle avoidance: if the unit has somthing near that is not the target
-avoid :- depth(near), not(vision(_,near)).
-avoidI :> answer('right:90').
-
-% stop: if the unit is near the green conveyor belt and it is full
-stop :- vision(green,near), load(full).
-% stop: if the unit is near the red conveyor belt and it is empty
-stop :- vision(red, near), load(empty).
-stopI :> answer('stop').
-
-% turn: if the unit sees the conveyor belt to one of its sides
-turn(X) :- vision(_,X), depth(far).
-turnI(X):- append(X, ':30', Res), answer(Res).
-
-% go: if the unit sees the convayor belt in front of it
-go :- vision(_, center), depth(far).
-go :> answer('go:2').
-
-% goBack: if the unit is near the green convayor belt and it is empty, so it has to go to take another pack
-goBack :- vision(green,near), load(empty).
-% goBack: if the unit is near the red convayor belt and it is full, so it has to go to download the pack
-goBack :- vision(red,near), load(full).
-goBack :> answer('right:180').
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% received message must be of the form 'predicate. predicate. ...'
-% external event triggered by the arrival of a message
+/* received message must be of the form 'predicate. predicate. ...'
+   external event triggered by the arrival of a message */
 redisE(X) :> print('Received message: '),
-             pulisciStringa(X, Clean),
-             print(Clean), nl, addKnowledge(Clean).
+             pulisciStringa(X,Y), 
+             print(Y), nl, 
+             addKnowledge(Y).
 
-% add information to the kb by creating a new .pl file and compiling it
-addKnowledge(S) :-
-    open('addedKnowledge.pl', write, W),
-    write(W, S),
-    close(W),
-    compile('addedKnowledge.pl').
+/* add information to the kb by creating a new .pl file and compiling it */
+addKnowledge(S) :- open('addedKnowledge.pl', write, W),
+                   write(W, S),
+                   close(W),
+                   compile('addedKnowledge.pl').
 
-% incapsulate the answer procedure (send and kb cleaning)
-answer(X) :- name(N),
-             append(N,X,Res),
+/* incapsulate the answer procedure (send and kb cleaning) */
+answer(X) :- agentname(N),
+             atom_concat(N,X,Res),
              mas_send(Res),
              print('action: '),
              print(X),
@@ -60,3 +33,28 @@ answer(X) :- name(N),
              retractall(depth(_)),
              retractall(load(_)).
 
+/* obstacle avoidance: if the unit has somthing near that is not the target */
+avoid :- depth(near), \+ vision(_,near).
+avoidI :> answer('right:45').
+
+/* stop: if the unit is near the green conveyor belt and it is full */
+stop :- vision(green, near), load(full).
+/* stop: if the unit is near the red conveyor belt and it is empty */
+stop :- vision(red, near), load(empty).
+stopI :> answer('stop').
+
+/* follow: if the unit sees the conveyor belt to one of its sides */
+follow(X) :- vision(_,X), \+ vision(_,center), \+ vision(_,none), depth(far).
+followI(X) :> atom_concat(X, ':10', Res), answer(Res).
+
+/* forward: if the unit sees the convayor belt in front of it */
+forward :- vision(green,center), depth(far), load(full).
+forward :- vision(red,center), depth(far), load(empty).
+forwardI :> answer('go:2').
+
+/* if the unit is facing the wrong direction */
+turn :- vision(green,center), load(empty). 
+turn :- vision(red,center), load(full).
+turn :- vision(green,near), load(empty).
+turn :- vision(red,near), load(full).
+turnI :> answer('right:180').

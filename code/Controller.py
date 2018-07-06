@@ -51,13 +51,12 @@ def job(data):
         terminal = Terminal.Terminal(data['port'])
         time.sleep(1)
         world = RobotWorld.World(data['sensors'], data['wheels'], data['signals'], data['host'], data['port'], terminal)
-        brain = RobotWorld.Brain(data['port'], terminal)
+        brain = RobotWorld.Brain(world, data['port'], terminal)
     except Exception as e:
         print(data['port'], 'Exception: ', e)
 
     while True:
         environment = world.sense()
-        world.act('stop')
         action = brain.think(environment)
         # terminal.write("action = {}".format(action))  # print action.
         world.act(action)
