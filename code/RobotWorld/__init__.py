@@ -126,6 +126,8 @@ class World(object):
 
         blob_data = blob_data[1]
 
+        blob_area = blob_data[6] * blob_data[7]
+
         if blob_data[0] == 0:
             return color, position
 
@@ -134,19 +136,19 @@ class World(object):
         if color == "NONE":
             return color, position
 
-        if blob_data[6] * blob_data[7] >= 0.85:
-            return color, "NEAR"
+        if blob_area>= 0.65:
+            return color, "NEAR", blob_area
 
-        if 0.33 < blob_data[4] < 0.66:
-            return color, "CENTER"
+        if 0.33 < blob_data[4] < 0.67:
+            return color, "CENTER", blob_area
 
-        if 0.0 < blob_data[4] < 0.33:
-            return color, "LEFT"
+        if 0.0 < blob_data[4] < 0.333:
+            return color, "LEFT", blob_area
 
-        if 0.66 < blob_data[4] < 1:
-            return color, "RIGHT"
+        if 0.67 < blob_data[4] < 1:
+            return color, "RIGHT", blob_area
 
-        return color, position
+        return color, position, blob_area
 
     @staticmethod
     def get_blob_color(resolution, image):
@@ -180,66 +182,6 @@ class World(object):
 
         return detected_color
 
-
-
-    #def get_vision(self, resolution, image):
-    #    """
-    #    Compute the position of red/green object in the scene.
-    #    :param resolution: Resolution of the camera.
-    #    :param image: Seen image.
-    #    :return: Return a tuple containing the detected color and the position.
-    #    """
-    #
-    #    image = np.array(image, dtype=np.uint8)
-    #    section = int(resolution[0]/3)  # x section: partitioning on the x
-    #    # sectiony = int(resolution[1]/3)  # y section: partitioning on the Y
-    #    detected_color = "NONE"
-    #    position = "NONE"
-    #    colors = 3
-    #    # the len of the image is 921600 = 640x480x3 => this means that each 3 values is a pixel
-    #    # red = 200,41,41
-    #    # green = 72,233,72
-    #
-    #    pos_from_left = None
-    #    pos_from_right = None
-    #
-    #    for x in range(resolution[0]-3):
-    #        #for y in range(sectiony, sectiony*2):
-    #        y = int(resolution[1]/2) # I only look at the line of pixels in the middle
-    #        r = image[colors * (y * resolution[0] + x)]
-    #        g = image[colors * (y * resolution[0] + x) + 1]
-    #        b = image[colors * (y * resolution[0] + x) + 2]
-    #        if (r == 0 or g == 0 or b == 0) and pos_from_right is None:  # if black
-    #            continue
-    #        elif (r == 0 or g == 0 or b == 0) and pos_from_right is not None:  # pos from right is final, i can exit
-    #            avg = (pos_from_left + pos_from_right) / 2  # the center of mass.
-    #
-    #            if avg < section:
-    #                position = "LEFT"
-    #            elif avg > section * 2:
-    #                position = "RIGHT"
-    #            else:
-    #                position = "CENTER"
-    #
-    #            return detected_color, position
-    #
-    #        if g > 190:  # we detect green.
-    #            detected_color = "GREEN"
-    #
-    #            if pos_from_left is None:  # we save the first x position of green.
-    #                pos_from_left = x
-    #
-    #            pos_from_right = x  # we save the last x position of green.
-    #
-    #        elif r > 190:  # we detect red.
-    #            detected_color = "RED"
-    #
-    #            if pos_from_left is None:  # we save the first x position of red.
-    #                pos_from_left = x
-    #
-    #            pos_from_right = x  # we save the last x position of red.
-    #
-    #    return detected_color, position
 
     def stop(self):
         """
@@ -300,8 +242,17 @@ class World(object):
         try:
             separator = action.index(':')
         except Exception as e:
-            self.stop()
-            return
+            if action == 'stop':
+                self.stop()
+                return
+            if action == 'unload':
+                # TODO unload
+                self.stop()
+                return
+            if action == 'loadup':
+                # TODO loadup
+                self.stop()
+                return
         
         value = int(action[separator+1:])
         action = action[:separator]
@@ -322,9 +273,10 @@ class World(object):
 class Brain(object):
 
     def __init__(self, world, port, terminal):
-        self._depth_treshold = 0.15
+        self._depth_treshold = 0.10
         self._world = world
         self._state = None
+        self._dali_depth = ""
         self._load = "EMPTY"  # the robot have no package on the top.
         
         self._port = port  # robot port.
@@ -336,23 +288,25 @@ class Brain(object):
         self._from_linda = redis.Redis(host='127.0.0.1', port=6379)  # channel from linda (proxy).
         self._sub = self._from_linda.pubsub()
         self._sub.subscribe(self._topic)
+        self._previous_action = None
 
         self._term.write("subbed to topic: {}".format(self._topic))
 
     def think(self, sensor_reading):
         """
-        It decides what do.
+        It decides what to do.
         :param sensor_reading: result of the sense.
         :return: an action.
         """
         self._state, changed = self.perception(sensor_reading)
         # the world is changed of if the unit is facing the wrong direction -> call DALI.
-        if changed or self._state[1] != 'center':  
+        if changed:
             # stop the unit while DALi is computing
             self._world.act('stop')
             action = self.decision()
-        else:  # the world no changed.
-            action = self.ground_decision(sensor_reading)
+            self._previous_action = action
+        else:  # the world did not change
+            action = self.ground_decision()
         return action
 
     def perception(self, sensor_reading):
@@ -361,45 +315,45 @@ class Brain(object):
         :param sensor_reading: result of the sense
         :return: state
         """
-        predicate = []  # we build the predicate.
-        changed = None
-        # True if the new state if different from the previous one, 1 otherwise
+        new_state = {'color': sensor_reading['vision'][0].lower(),
+                     'position': sensor_reading['vision'][1].lower(),
+                     'depth': sensor_reading['depth'],
+                     'load': self._load.lower()}  # we build the new_state.
 
-        predicate.append(sensor_reading['vision'][0].lower())  # all to lower case.
-        predicate.append(sensor_reading['vision'][1].lower())  # all to lower case.
-        predicate.append(sensor_reading['depth'])
-        predicate.append(self._load.lower())
-
-        # the world changed.
+        # the world changed
         if self._state is None:
-            self._state = predicate.copy()
+            self._state = new_state.copy()
+            self._dali_depth = self._state['depth']
+            # to trigger the first DALI reasoning
             changed = True
         else:
-            changed = self.compare_states(self._state, predicate)
+            changed = self.compare_states(self._state, new_state)
 
-        return self._state, changed
+        return new_state, changed
 
     def decision(self):
         """
         The state contains the world representation.
-        :return: a decision
+        :return: a decision from DALI
         """
 
-        if self._state[2] > self._depth_treshold:
+        self._dali_depth = self._state['depth']
+
+        if self._state['depth'] > self._depth_treshold:
             depth = "far"
         else:
             depth = "near"
 
-        vision = "vision("+self._state[0]+","+self._state[1]+")."
-        depth = "depth("+depth+")."
-        load = "load("+self._state[3]+")."
-        name = "agentname('"+str(self._port)+":')."
+        vision = "vision({},{}).".format(self._state['color'], self._state['position'])
+        depth = "depth({}).".format(depth)
+        load = "load({}).".format(self._state['load'])
+        name = "agentname('{}:').".format(str(self._port))
 
         meta = ":- dynamic vision/2. :- dynamic depth/1. :- dynamic load/1. :- dynamic agentname/1."
 
         message = "{} {} {} {} {}".format(meta, vision, depth, load, name)
 
-        self._to_linda.publish("LINDAchannel", self._agent_name +':'+ message)
+        self._to_linda.publish("LINDAchannel", self._agent_name + ':' + message)
 
         self._term.write('listening for decision from MAS...')
         for item in self._sub.listen():
@@ -407,21 +361,26 @@ class Brain(object):
                 msg = item['data'].decode('utf-8')
                 separator = msg.index(':')
                 name = int(msg[:separator])
+                # if the action is not for me
                 if name != self._port:
                     continue
                 action = msg[separator+1:]
                 self._term.write('received action: {}'.format(action))
                 return action
 
-    def ground_decision(self, sensor_reading):
+    def ground_decision(self):
         """
         The robot has to avoid collisions.
         :return: a decision.
         """
-        if sensor_reading['depth'] <= self._depth_treshold:
-            return "right:45"
-        return "go:2"
+        if self._state['depth'] <= self._depth_treshold:
+            # the unit is near something, call DALI
+            return self.decision()
+        # if the state is not changed and I'm not colliding then repeat the previous action
+        return self._previous_action
 
     def compare_states(self, old_state, new_state):
-        return old_state[0] != new_state[0] or old_state[1] != new_state[1] or old_state[3] != new_state[3] or ((new_state[2] - old_state[2]) > 0.2)
-        
+        return old_state['color'] != new_state['color'] or \
+               old_state['position'] != new_state['position'] or \
+               old_state['load'] != new_state['load'] or \
+               (abs(new_state['depth'] - self._dali_depth) >= 0.05)

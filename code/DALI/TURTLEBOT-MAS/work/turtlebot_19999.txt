@@ -35,17 +35,19 @@ answer(X) :- agentname(N),
 
 /* obstacle avoidance: if the unit has somthing near that is not the target */
 avoid :- depth(near), \+ vision(_,near).
-avoidI :> answer('right:45').
+avoidI :> answer('right:40').
 
 /* stop: if the unit is near the green conveyor belt and it is full */
-stop :- vision(green, near), load(full).
+unload :- vision(green, near), load(full).
+unloadI :> answer('unload').
+
 /* stop: if the unit is near the red conveyor belt and it is empty */
-stop :- vision(red, near), load(empty).
-stopI :> answer('stop').
+loadup :- vision(red, near), load(empty).
+loadupI :> answer('loadup').
 
 /* follow: if the unit sees the conveyor belt to one of its sides */
 follow(X) :- vision(_,X), \+ vision(_,center), \+ vision(_,none), depth(far).
-followI(X) :> atom_concat(X, ':10', Res), answer(Res).
+followI(X) :> atom_concat(X, ':5', Res), answer(Res).
 
 /* forward: if the unit sees the convayor belt in front of it */
 forward :- vision(green,center), depth(far), load(full).
@@ -57,4 +59,8 @@ turn :- vision(green,center), load(empty).
 turn :- vision(red,center), load(full).
 turn :- vision(green,near), load(empty).
 turn :- vision(red,near), load(full).
-turnI :> answer('right:180').
+turnI :> answer('right:175').
+
+/* if the unit do not see a target */
+wanderAround :- vision(none,none).
+wanderAroundI :> answer('right:30').

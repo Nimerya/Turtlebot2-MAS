@@ -1,0 +1,1 @@
+:- dynamic vision/2. :- dynamic depth/1. :- dynamic load/1. :- dynamic agentname/1. vision(red,right). depth(far). load(empty). agentname('19999:').
