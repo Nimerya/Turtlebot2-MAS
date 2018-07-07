@@ -46,8 +46,9 @@ loadup :- vision(red, near), load(empty).
 loadupI :> answer('loadup').
 
 /* follow: if the unit sees the conveyor belt to one of its sides */
-follow(X) :- vision(_,X), \+ vision(_,center), \+ vision(_,none), depth(far).
-followI(X) :> atom_concat(X, ':5', Res), answer(Res).
+follow(X) :- vision(green,X), \+ vision(_,center), \+ vision(_,none), \+ vision(_,near), load(full).
+follow(X) :- vision(red,X), \+ vision(_,center), \+ vision(_,none), \+ vision(_,near), load(empty).
+followI(X) :> atom_concat(X, ':3', Res), answer(Res).
 
 /* forward: if the unit sees the convayor belt in front of it */
 forward :- vision(green,center), depth(far), load(full).
@@ -59,8 +60,8 @@ turn :- vision(green,center), load(empty).
 turn :- vision(red,center), load(full).
 turn :- vision(green,near), load(empty).
 turn :- vision(red,near), load(full).
-turnI :> answer('right:150').
+turnI :> answer('right:20').
 
 /* if the unit do not see a target */
-wanderAround :- vision(none,none).
-wanderAroundI :> answer('right:30').
+wanderAround :- vision(none,none), depth(far).
+wanderAroundI :> answer('right:10').

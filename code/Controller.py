@@ -58,7 +58,6 @@ def job(data):
     while True:
         environment = world.sense()
         action = brain.think(environment)
-        # terminal.write("action = {}".format(action))  # print action.
         world.act(action)
 
 

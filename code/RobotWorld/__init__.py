@@ -33,6 +33,7 @@ class World(object):
         self._host = host
         self._port = port
         self._term = terminal
+        self._load = "EMPTY"
 
         vrep.simxFinish(-1)  # just in case, close all opened connections.
         self._clientID = vrep.simxStart(self._host, self._port, True, True, 5000, 5)  # Connect to V-REP.
@@ -61,7 +62,7 @@ class World(object):
                 self._term.write(self._port, 'Sensors handle error: {}'.format(res))
                 exit(1)
 
-        self._term.write("SUCCESSFULLY FETCHED ALL HANDLES")
+        self._term.write("successfully fetched all handles")
 
     def sense(self):
         """
@@ -70,6 +71,7 @@ class World(object):
         """
 
         out = {}
+
         result, resolution, data = vrep.simxGetVisionSensorDepthBuffer(self._clientID,
                                                                        self.sensors_handles['kinect_depth'],
                                                                        self._operation_mode)
@@ -89,6 +91,8 @@ class World(object):
 
         out['vision'] = self.get_vision(resolution, image, t1)
 
+        out['load'] = self._load
+
         self._term.write("sensed: {}".format(out))
 
         return out
@@ -106,7 +110,7 @@ class World(object):
             for j in range(480):
                 if matrix[i*220+j] < depth:
                     depth = matrix[i*220+j]  # update matrix.
-        return depth
+        return round(depth, 5)
 
     def get_vision(self, resolution, image, blob_data):
         """
@@ -126,29 +130,29 @@ class World(object):
 
         blob_data = blob_data[1]
 
-        blob_area = blob_data[6] * blob_data[7]
-
         if blob_data[0] == 0:
             return color, position
+
+        blob_size = blob_data[2]
 
         # get color
         color = self.get_blob_color(resolution, image)
         if color == "NONE":
-            return color, position
+            return color, position, ('size', round(blob_size, 5))
 
-        if blob_area>= 0.65:
-            return color, "NEAR", blob_area
+        if blob_size >= 0.7:
+            return color, "NEAR", ('size', round(blob_size, 5))
 
-        if 0.33 < blob_data[4] < 0.67:
-            return color, "CENTER", blob_area
+        if 0.35 < blob_data[4] < 0.65:
+            return color, "CENTER", ('size', round(blob_size, 5))
 
-        if 0.0 < blob_data[4] < 0.333:
-            return color, "LEFT", blob_area
+        if 0.0 < blob_data[4] < 0.35:
+            return color, "LEFT", ('size', round(blob_size, 5))
 
-        if 0.67 < blob_data[4] < 1:
-            return color, "RIGHT", blob_area
+        if 0.65 < blob_data[4] < 1:
+            return color, "RIGHT", ('size', round(blob_size, 5))
 
-        return color, position, blob_area
+        return color, position, ('size', round(blob_size, 5))
 
     @staticmethod
     def get_blob_color(resolution, image):
@@ -181,7 +185,6 @@ class World(object):
                 detected_color = "RED"
 
         return detected_color
-
 
     def stop(self):
         """
@@ -233,6 +236,20 @@ class World(object):
         vrep.simxSetJointTargetVelocity(self._clientID, self.wheels_handles["wheel_left"], speed,
                                         self._operation_mode)
 
+    # TODO loadup
+    def loadup(self, ):
+        self.stop()
+        time.sleep(3)
+        self._load = "FULL"
+        return
+
+    # TODO unload
+    def unload(self):
+        self.stop()
+        time.sleep(3)
+        self._load = "EMPTY"
+        return
+
     def act(self, action):
         """
         translates abstracted actions to elementary actiolns
@@ -246,12 +263,10 @@ class World(object):
                 self.stop()
                 return
             if action == 'unload':
-                # TODO unload
-                self.stop()
+                self.unload()
                 return
             if action == 'loadup':
-                # TODO loadup
-                self.stop()
+                self.loadup()
                 return
         
         value = int(action[separator+1:])
@@ -273,12 +288,11 @@ class World(object):
 class Brain(object):
 
     def __init__(self, world, port, terminal):
-        self._depth_treshold = 0.10
+        self._depth_treshold = 0.1
         self._world = world
         self._state = None
         self._dali_depth = ""
-        self._load = "EMPTY"  # the robot have no package on the top.
-        
+
         self._port = port  # robot port.
         self._agent_name = "turtlebot_{}".format(self._port)  # name of the agent.
         self._topic = "fromMAS"  # communication topic (from DALI to me).
@@ -318,7 +332,7 @@ class Brain(object):
         new_state = {'color': sensor_reading['vision'][0].lower(),
                      'position': sensor_reading['vision'][1].lower(),
                      'depth': sensor_reading['depth'],
-                     'load': self._load.lower()}  # we build the new_state.
+                     'load': sensor_reading['load'].lower()}  # we build the new_state.
 
         # the world changed
         if self._state is None:
