@@ -62,6 +62,6 @@ turn :- vision(green,near), load(empty).
 turn :- vision(red,near), load(full).
 turnI :> answer('right:20').
 
-/* if the unit do not see a target */
+/* if the unit does not see a target */
 wanderAround :- vision(none,none), depth(far).
 wanderAroundI :> answer('right:10').

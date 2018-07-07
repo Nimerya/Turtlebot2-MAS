@@ -54,6 +54,7 @@ def job(data):
         brain = RobotWorld.Brain(world, data['port'], terminal)
     except Exception as e:
         print(data['port'], 'Exception: ', e)
+        exit(1)
 
     while True:
         environment = world.sense()
