@@ -9,33 +9,42 @@
 :- dynamic load/1. 
 :- dynamic agentname/1.
 
+
 /* received message must be of the form 'predicate. predicate. ...'
    external event triggered by the arrival of a message */
 redisE(X) :> print('Received message: '),
              pulisciStringa(X,Y), 
-             print(Y), nl, 
+             print(Y), nl,
              addKnowledge(Y).
 
 /* add information to the kb by creating a new .pl file and compiling it */
-addKnowledge(S) :- open('addedKnowledge.pl', write, W),
+addKnowledge(S) :- now(Now),
+                   concatenate(Now, '_knowledge.pl', Fname),
+                   open(Fname, write, W),
                    write(W, S),
                    close(W),
-                   compile('addedKnowledge.pl').
+                   compile(Fname).
+
+/* utility rule used to concatenate a numeric prefix with a string suffix */
+concatenate(NumericPrefix, AtomicSuffix, Concatenation) :- name(NumericPrefix, Pfx),
+                                                           name(AtomicSuffix, Sfx),
+                                                           append(Pfx, Sfx, Codes),
+                                                           name(Concatenation, Codes).
 
 /* incapsulate the answer procedure (send and kb cleaning) */
 answer(X) :- agentname(N),
              atom_concat(N,X,Res),
-             mas_send(Res),
              print('action: '),
              print(X),
              nl,
              retractall(vision(_,_)),
              retractall(depth(_)),
-             retractall(load(_)).
+             retractall(load(_)),
+             mas_send(Res).
 
 /* obstacle avoidance: if the unit has somthing near that is not the target */
 avoid :- depth(near), \+ vision(_,near).
-avoidI :> answer('right:20').
+avoidI :> answer('right:40').
 
 /* stop: if the unit is near the green conveyor belt and it is full */
 unload :- vision(green, near), load(full).
@@ -46,7 +55,8 @@ loadup :- vision(red, near), load(empty).
 loadupI :> answer('loadup').
 
 /* follow: if the unit sees the conveyor belt to one of its sides */
-follow(X) :- vision(_,X), \+ vision(_,center), \+ vision(_,none), \+ vision(_,near).
+follow(X) :- vision(green,X), \+ vision(_,center), \+ vision(_,none), \+ vision(_,near), load(full).
+follow(X) :- vision(red,X), \+ vision(_,center), \+ vision(_,none), \+ vision(_,near), load(empty).
 followI(X) :> atom_concat(X, ':3', Res), answer(Res).
 
 /* forward: if the unit sees the convayor belt in front of it */
@@ -61,6 +71,8 @@ turn :- vision(green,near), load(empty).
 turn :- vision(red,near), load(full).
 turnI :> answer('right:20').
 
-/* if the unit do not see a target */
+/* if the unit does not see a target */
 wanderAround :- vision(none,none), depth(far).
+wanderAround :- vision(red,_), depth(far), load(full), \+ vision(green,_), \+ vision(red, center).
+wanderAround :- vision(green,_), depth(far), load(empty), \+ vision(red,_), \+ vision(green, center).
 wanderAroundI :> answer('right:10').

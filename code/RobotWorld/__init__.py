@@ -29,7 +29,7 @@ class World(object):
         :param host: host number.
         :param port: port number.
         """
-        self._turning_speed = 1
+        self._turning_speed = 0.5
         self._host = host
         self._port = port
         self._term = terminal
@@ -97,7 +97,8 @@ class World(object):
 
         return out
 
-    def get_depth(self, matrix):
+    @staticmethod
+    def get_depth(matrix):
         """
         Get the depth camera matrix and return it.
         :param matrix: the entire matrix
@@ -138,21 +139,21 @@ class World(object):
         # get color
         color = self.get_blob_color(resolution, image)
         if color == "NONE":
-            return color, position, ('size', round(blob_size, 5))
+            return color, position, round(blob_size, 5)
 
         if blob_size >= 0.7:
-            return color, "NEAR", ('size', round(blob_size, 5))
+            return color, "NEAR", round(blob_size, 5)
 
         if 0.35 < blob_data[4] < 0.65:
-            return color, "CENTER", ('size', round(blob_size, 5))
+            return color, "CENTER", round(blob_size, 5)
 
         if 0.0 < blob_data[4] < 0.35:
-            return color, "LEFT", ('size', round(blob_size, 5))
+            return color, "LEFT", round(blob_size, 5)
 
         if 0.65 < blob_data[4] < 1:
-            return color, "RIGHT", ('size', round(blob_size, 5))
+            return color, "RIGHT", round(blob_size, 5)
 
-        return color, position, ('size', round(blob_size, 5))
+        return color, position, round(blob_size, 5)
 
     @staticmethod
     def get_blob_color(resolution, image):
@@ -171,7 +172,7 @@ class World(object):
         # green = 72,233,72
 
         for x in range(resolution[0]-3):
-            y = int(resolution[1]/2) # I only look at the line of pixels in the middle
+            y = int(resolution[1]/2)  # I only look at the line of pixels in the middle
             r = image[colors * (y * resolution[0] + x)]
             g = image[colors * (y * resolution[0] + x) + 1]
             b = image[colors * (y * resolution[0] + x) + 2]
@@ -216,13 +217,13 @@ class World(object):
             gyro_data_unpacked_x = (struct.unpack("f", bytearray(gyro_data[1][:4]))[0] * 180) / math.pi
             gyro_data_unpacked_y = (struct.unpack("f", bytearray(gyro_data[1][4:8]))[0] * 180) / math.pi
             gyro_data_unpacked_z = (struct.unpack("f", bytearray(gyro_data[1][8:12]))[0] * 180) / math.pi
-            #self._term.write('-------------------------------------------------------\n'
+            # self._term.write('-------------------------------------------------------\n'
             #      '{} : X-Gyro = {} dps\n        Y-Gyro = {} dps\n        Z-Gyro = {} dps'
             #      .format(self._port, round(gyro_data_unpacked_x, 2), round(gyro_data_unpacked_y, 2),
             #              round(gyro_data_unpacked_z, 2)))
 
             z += abs(gyro_data_unpacked_z)
-            #self._term.write('cumulative angle = {}'.format(z))
+            # self._term.write('cumulative angle = {}'.format(z))
         self._term.write('turn completed')
 
     def go(self, speed):
@@ -288,7 +289,7 @@ class World(object):
 class Brain(object):
 
     def __init__(self, world, port, terminal):
-        self._depth_treshold = 0.1
+        self._depth_treshold = 0.15
         self._world = world
         self._state = None
         self._dali_depth = ""
@@ -353,10 +354,10 @@ class Brain(object):
 
         self._dali_depth = self._state['depth']
 
-        if self._state['depth'] > self._depth_treshold:
-            depth = "far"
-        else:
+        if self._state['depth'] <= self._depth_treshold or self._state['position'] == 'near':
             depth = "near"
+        else:
+            depth = "far"
 
         vision = "vision({},{}).".format(self._state['color'], self._state['position'])
         depth = "depth({}).".format(depth)
@@ -397,4 +398,4 @@ class Brain(object):
         return old_state['color'] != new_state['color'] or \
                old_state['position'] != new_state['position'] or \
                old_state['load'] != new_state['load'] or \
-               (abs(new_state['depth'] - self._dali_depth) >= 0.05)
+               (abs(new_state['depth'] - self._dali_depth) >= 0.02)
