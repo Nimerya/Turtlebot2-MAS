@@ -1,7 +1,0 @@
-:- use_module(library(file_systems)).
-:- use_module(library(system)).
-
-:- compile('../mas/redis_client.pl').
-:- compile('../mas/stringESE').
-
-redisE(X) :> pulisciStringa(X,Y), print(Y), nl.

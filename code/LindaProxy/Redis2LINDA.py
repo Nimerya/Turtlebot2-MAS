@@ -30,15 +30,15 @@ def makeAtomic(s):
     out = out.replace(':', 'J')
     return out
 
-# Canale di comunicazione da Redis a LINDA e da LINDA al MAS.
-# Da usare come main rispetto a lindaproxy
+# communication channel for Linda and to the DALI MAS
+# use it as a main for lindaproxy
 
 
-# Il proxy è usato solo per inviare messaggi al MAS DALI
+# used to send message to the DALI MAS
 L = lp.LindaProxy(host='127.0.0.1')
 L.connect()
 
-# Il sistema inoltra gli eventi redis al MAS
+# prepare and forward the messages to the MAS
 R = redis.Redis()
 pubsub = R.pubsub()
 pubsub.subscribe('LINDAchannel')
