@@ -23,7 +23,7 @@ class World(object):
     Robot simulator class to communicate with the simulation environment.
     """
 
-    def __init__(self, sensors, wheels, signals, host='127.0.0.1', port=19999, terminal = None):
+    def __init__(self, sensors, wheels, signals, host='127.0.0.1', port=19999, terminal=None):
         """
         Initialize the connection with V-REP.
         :param host: host number.
