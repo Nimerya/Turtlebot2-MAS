@@ -45,6 +45,9 @@ class World(object):
         self.signals = signals
 
         self._term.write('Fetching wheels handles...')
+        self._robot_handle = vrep.simxGetObjectHandle(self._clientID, "handle of the robot", self._operation_mode)
+        # todo modify handle.
+
         for w in wheels:  # initialize the robot.
             res, handle = vrep.simxGetObjectHandle(self._clientID, wheels[w], self._operation_mode)
             if res == vrep.simx_return_ok:
@@ -240,14 +243,22 @@ class World(object):
     # TODO loadup
     def loadup(self, ):
         self.stop()
-        time.sleep(3)
+        # creating a shape.
+        vrep.simxCallScriptFunction(self._clientID, "", vrep.sim_scripttype_mainscript(0), "simCreatePureShape", 0, 8, {0.2, 0.1, 0.07}, 0, self._operation_mode)
+        # retrieving the position of the robot.
+        #simx.getObjectPosition()
+        # set position.
+        #vrep.simxSetObjectPosition(self._clientID, self._robot_handle, -1, objectPosition, vrep.simx_opmode_oneshot)
         self._load = "FULL"
         return
 
     # TODO unload
     def unload(self):
         self.stop()
-        time.sleep(3)
+        # retrieving the shape position.
+        vrep.simxCallScriptFunction(self._clientID, "", vrep.sim_scripttype_mainscript(0), "simCreatePureShape", 0, 8,
+                                    {0.2, 0.1, 0.07}, 0, self._operation_mode)
+        # delete the shape.
         self._load = "EMPTY"
         return
 
