@@ -204,6 +204,23 @@ class World(object):
         # the second parameter is the velocity.
         vrep.simxSetJointTargetVelocity(self._clientID, self.wheels_handles["wheel_right"], 0, self._operation_mode)
         vrep.simxSetJointTargetVelocity(self._clientID, self.wheels_handles["wheel_left"], 0, self._operation_mode)
+        # move back the package to the center of the platform
+        if self._cube_handle is not None:
+
+            return_code, plate_position = vrep.simxGetObjectPosition(self._clientID,
+                                                                 self.plate_handle,
+                                                                 -1,
+                                                                 self._operation_mode)
+
+            final_position = plate_position
+            final_position[2] += 0.05
+
+            vrep.simxSetObjectPosition(self._clientID,
+                                    self._cube_handle,
+                                    -1,
+                                    final_position,
+                                    self._operation_mode)
+            time.sleep(0.1)
 
     def turn(self, speedr, speedl, angle):
         """
@@ -271,7 +288,7 @@ class World(object):
                                                                  self._operation_mode)
 
         final_position = plate_position
-        final_position[2] += 0.1
+        final_position[2] += 0.05
 
         vrep.simxSetObjectPosition(self._clientID,
                                    self._cube_handle,
@@ -291,7 +308,7 @@ class World(object):
         self._term.write("unloading...")
 
         vrep.simxRemoveObject(self._clientID, self._cube_handle, self._operation_mode)
-
+        self._cube_handle = None
         # delete the shape.
         self._term.write("unload completed.")
         self._load = "EMPTY"
@@ -339,6 +356,7 @@ class Brain(object):
         self._world = world
         self._state = None
         self._dali_depth = ""
+        self._no_dali_count = 0
 
         self._port = port  # robot port.
         self._agent_name = "turtlebot_{}".format(self._port)  # name of the agent.
@@ -361,13 +379,15 @@ class Brain(object):
         """
         self._state, changed = self.perception(sensor_reading)
         # the world is changed of if the unit is facing the wrong direction -> call DALI.
-        if changed:
+        if changed or self._no_dali_count > 5:
             # stop the unit while DALi is computing
             self._world.act('stop')
+            self._no_dali_count = 0
             action = self.decision()
             self._previous_action = action
         else:  # the world did not change
             action = self.ground_decision()
+            self._no_dali_count += 1
         return action
 
     def perception(self, sensor_reading):
