@@ -23,7 +23,7 @@ class World(object):
     Robot simulator class to communicate with the simulation environment.
     """
 
-    def __init__(self, sensors, wheels, signals, host='127.0.0.1', port=19999, terminal=None):
+    def __init__(self, sensors, wheels, signals, plate, host='127.0.0.1', port=19999, terminal=None):
         """
         Initialize the connection with V-REP.
         :param host: host number.
@@ -34,6 +34,7 @@ class World(object):
         self._port = port
         self._term = terminal
         self._load = "EMPTY"
+        self._cube_handle = None
 
         vrep.simxFinish(-1)  # just in case, close all opened connections.
         self._clientID = vrep.simxStart(self._host, self._port, True, True, 5000, 5)  # Connect to V-REP.
@@ -45,8 +46,6 @@ class World(object):
         self.signals = signals
 
         self._term.write('Fetching wheels handles...')
-        self._robot_handle = vrep.simxGetObjectHandle(self._clientID, "handle of the robot", self._operation_mode)
-        # todo modify handle.
 
         for w in wheels:  # initialize the robot.
             res, handle = vrep.simxGetObjectHandle(self._clientID, wheels[w], self._operation_mode)
@@ -62,8 +61,15 @@ class World(object):
             if res == vrep.simx_return_ok:
                 self.sensors_handles[s] = handle
             else:
-                self._term.write(self._port, 'Sensors handle error: {}'.format(res))
+                self._term.write('Sensors handle error: {}'.format(res))
                 exit(1)
+
+        res, handle = vrep.simxGetObjectHandle(self._clientID, plate, self._operation_mode)
+        if res == vrep.simx_return_ok:
+            self.plate_handle = handle
+        else:
+            self._term.write('Plate handle error: {}'.format(res))
+            exit(1)
 
         self._term.write("successfully fetched all handles")
 
@@ -240,25 +246,51 @@ class World(object):
         vrep.simxSetJointTargetVelocity(self._clientID, self.wheels_handles["wheel_left"], speed,
                                         self._operation_mode)
 
-    # TODO loadup
-    def loadup(self, ):
+    def loadup(self):
+        """
+        spawns a cube and moves it on top of the unit
+        """
         self.stop()
-        # creating a shape.
-        vrep.simxCallScriptFunction(self._clientID, "", vrep.sim_scripttype_mainscript(0), "simCreatePureShape", 0, 8, {0.2, 0.1, 0.07}, 0, self._operation_mode)
-        # retrieving the position of the robot.
-        #simx.getObjectPosition()
-        # set position.
-        #vrep.simxSetObjectPosition(self._clientID, self._robot_handle, -1, objectPosition, vrep.simx_opmode_oneshot)
+        self._term.write("loading up...")
+        return_code, out_int, out_float, out_string, out_buffer = \
+            vrep.simxCallScriptFunction(self._clientID,
+                                        "",
+                                        vrep.sim_scripttype_mainscript,
+                                        "spawnCube",
+                                        [],
+                                        [],
+                                        [],
+                                        bytearray(),
+                                        self._operation_mode)
+
+        self._cube_handle = out_int[0]
+
+        return_code, plate_position = vrep.simxGetObjectPosition(self._clientID,
+                                                                 self.plate_handle,
+                                                                 -1,
+                                                                 self._operation_mode)
+
+        vrep.simxSetObjectPosition(self._clientID,
+                                   self._cube_handle,
+                                   -1,
+                                   plate_position,
+                                   self._operation_mode)
+
         self._load = "FULL"
+        self._term.write("load up completed.")
         return
 
-    # TODO unload
     def unload(self):
+        """
+        abstracts the unload operation: make the package disappear
+        """
         self.stop()
-        # retrieving the shape position.
-        vrep.simxCallScriptFunction(self._clientID, "", vrep.sim_scripttype_mainscript(0), "simCreatePureShape", 0, 8,
-                                    {0.2, 0.1, 0.07}, 0, self._operation_mode)
+        self._term.write("unloading...")
+
+        vrep.simxRemoveObject(self._clientID, self._cube_handle, self._operation_mode)
+
         # delete the shape.
+        self._term.write("unload completed.")
         self._load = "EMPTY"
         return
 

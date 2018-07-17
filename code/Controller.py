@@ -13,8 +13,7 @@ except ImportError as e:
 
 
 # host = '192.168.43.185'
-host = '192.168.0.2'
-#'127.0.0.1'
+host = '127.0.0.1'
 
 # list of all the data.
 dataList = [
@@ -27,6 +26,7 @@ dataList = [
         'wheels': {'wheel_right': 'wheel_right_joint',
                    'wheel_left': 'wheel_left_joint'},
         'signals': {'gyro_signal': 'gyro_signal'},
+        'plate': 'plate_top_visual',
         'host': host,
         'port': 19999
     },
@@ -39,6 +39,7 @@ dataList = [
         'wheels': {'wheel_right': 'wheel_right_joint#0',
                    'wheel_left': 'wheel_left_joint#0'},
         'signals': {'gyro_signal': 'gyro_signal#0'},
+        'plate': 'plate_top_visual#0',
         'host': host,
         'port': 20000
     }
@@ -50,16 +51,21 @@ def job(data):
     try:
         terminal = Terminal.Terminal(data['port'])
         time.sleep(1)
-        world = RobotWorld.World(data['sensors'], data['wheels'], data['signals'], data['host'], data['port'], terminal)
-        brain = RobotWorld.Brain(world, data['port'], terminal)
+        world = RobotWorld.World(data['sensors'], data['wheels'], data['signals'], data['plate'],
+                                 data['host'], data['port'], terminal)
+        #brain = RobotWorld.Brain(world, data['port'], terminal)
     except Exception as e:
         print(data['port'], 'Exception: ', e)
         exit(1)
 
     while True:
-        environment = world.sense()
-        action = brain.think(environment)
-        world.act(action)
+        world.loadup()
+        time.sleep(5)
+        world.unload()
+        exit(0)
+        #environment = world.sense()
+        #action = brain.think(environment)
+        #world.act(action)
 
 
 def main():
