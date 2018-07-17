@@ -13,7 +13,7 @@ except ImportError as e:
 
 
 # host = '192.168.43.185'
-host = '127.0.0.1'
+host = '192.168.0.3'
 
 # list of all the data.
 dataList = [
@@ -53,19 +53,15 @@ def job(data):
         time.sleep(1)
         world = RobotWorld.World(data['sensors'], data['wheels'], data['signals'], data['plate'],
                                  data['host'], data['port'], terminal)
-        #brain = RobotWorld.Brain(world, data['port'], terminal)
+        brain = RobotWorld.Brain(world, data['port'], terminal)
     except Exception as e:
         print(data['port'], 'Exception: ', e)
         exit(1)
 
     while True:
-        world.loadup()
-        time.sleep(5)
-        world.unload()
-        exit(0)
-        #environment = world.sense()
-        #action = brain.think(environment)
-        #world.act(action)
+        environment = world.sense()
+        action = brain.think(environment)
+        world.act(action)
 
 
 def main():

@@ -3,12 +3,13 @@
 
 :- compile('../mas/redis_client.pl').
 :- compile('../mas/stringESE.pl').
+:- compile('../mas/init.pl').
 
 :- dynamic vision/2. 
 :- dynamic depth/1. 
 :- dynamic load/1. 
 :- dynamic agentname/1.
-
+:- dynamic recentavoidance/1.
 
 /* received message must be of the form 'predicate. predicate. ...'
    external event triggered by the arrival of a message */
@@ -44,7 +45,7 @@ answer(X) :- agentname(N),
 
 /* obstacle avoidance: if the unit has somthing near that is not the target */
 avoid :- depth(near), \+ vision(_,near).
-avoidI :> answer('right:20').
+avoidI :> retractall(recentavoidance(_)), addKnowledge(':- dynamic recentavoidance/1. recentavoidance(1).'), answer('left:20').
 
 /* stop: if the unit is near the green conveyor belt and it is full */
 unload :- vision(green, near), load(full).
@@ -55,24 +56,29 @@ loadup :- vision(red, near), load(empty).
 loadupI :> answer('loadup').
 
 /* follow: if the unit sees the conveyor belt to one of its sides */
-follow(X) :- vision(green,X), \+ vision(_,center), \+ vision(_,none), \+ vision(_,near), load(full).
-follow(X) :- vision(red,X), \+ vision(_,center), \+ vision(_,none), \+ vision(_,near), load(empty).
+follow(X) :- vision(green,X), \+ vision(_,center), \+ vision(_,none), \+ vision(_,near), load(full), depth(far).
+follow(X) :- vision(red,X), \+ vision(_,center), \+ vision(_,none), \+ vision(_,near), load(empty), depth(far).
 followI(X) :> atom_concat(X, ':3', Res), answer(Res).
 
 /* forward: if the unit sees the convayor belt in front of it */
 forward :- vision(green,center), depth(far), load(full).
 forward :- vision(red,center), depth(far), load(empty).
-forwardI :> answer('go:2').
+forwardI :> answer('go:3').
 
 /* if the unit is facing the wrong direction */
 turn :- vision(green,center), load(empty). 
 turn :- vision(red,center), load(full).
 turn :- vision(green,near), load(empty).
 turn :- vision(red,near), load(full).
-turnI :> answer('right:20').
+turnI :> answer('left:20').
 
 /* if the unit does not see a target */
-wanderAround :- vision(none,none), depth(far).
-wanderAround :- vision(red,_), depth(far), load(full), \+ vision(green,_), \+ vision(red, center).
-wanderAround :- vision(green,_), depth(far), load(empty), \+ vision(red,_), \+ vision(green, center).
-wanderAroundI :> answer('right:5').
+wanderAround :- vision(none,none), depth(far), recentavoidance(0).
+wanderAround :- vision(red,_), depth(far), load(full), \+ vision(green,_), \+ vision(red, center), recentavoidance(0).
+wanderAround :- vision(green,_), depth(far), load(empty), \+ vision(red,_), \+ vision(green, center), recentavoidance(0).
+wanderAround :> answer('left:20').
+
+wanderAroundAfterAvoidance :- vision(none,none), depth(far), recentavoidance(1).
+wanderAroundAfterAvoidance :- vision(red,_), depth(far), load(full), \+ vision(green,_), \+ vision(red, center), recentavoidance(1).
+wanderAroundAfterAvoidance :- vision(green,_), depth(far), load(empty), \+ vision(red,_), \+ vision(green, center), recentavoidance(1).
+wanderAroundAfterAvoidance :> retractall(recentavoidance(_)), addKnowledge(':- dynamic recentavoidance/1. recentavoidance(0).'), answer('go:5').

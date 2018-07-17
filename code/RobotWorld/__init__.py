@@ -29,7 +29,7 @@ class World(object):
         :param host: host number.
         :param port: port number.
         """
-        self._turning_speed = 0.5
+        self._turning_speed = 1.5
         self._host = host
         self._port = port
         self._term = terminal
@@ -150,7 +150,7 @@ class World(object):
         if color == "NONE":
             return color, position, round(blob_size, 5)
 
-        if blob_size >= 0.7:
+        if blob_size >= 0.65:
             return color, "NEAR", round(blob_size, 5)
 
         if 0.35 < blob_data[4] < 0.65:
@@ -270,10 +270,13 @@ class World(object):
                                                                  -1,
                                                                  self._operation_mode)
 
+        final_position = plate_position
+        final_position[2] += 0.1
+
         vrep.simxSetObjectPosition(self._clientID,
                                    self._cube_handle,
                                    -1,
-                                   plate_position,
+                                   final_position,
                                    self._operation_mode)
 
         self._load = "FULL"
@@ -332,7 +335,7 @@ class World(object):
 class Brain(object):
 
     def __init__(self, world, port, terminal):
-        self._depth_treshold = 0.15
+        self._depth_treshold = 0.17
         self._world = world
         self._state = None
         self._dali_depth = ""
