@@ -11,10 +11,10 @@ except ImportError as e:
     print('import exception ', e)
     print('--------------------------------------------------------------')
 
-
+# ip of the vrep simulator
 host = '192.168.0.2'
 
-# list of all the data.
+# list of dictionaries containing the names of the handles of the unit's sensors/parts
 dataList = [
     {
         'sensors': {
@@ -46,24 +46,41 @@ dataList = [
 
 
 def job(data):
+    """
+    function that encapsulates each unit's
+    :param data: dictionary containing the data that will be used in the world and brain classes
+    :return: nothing
+    """
     print(data['port'], 'Starting...')
     try:
+        # spawn a terminal for logging
         terminal = Terminal.Terminal(data['port'])
+        # wait for the terminal to spawn
         time.sleep(1)
+        # init the world obj
         world = RobotWorld.World(data['sensors'], data['wheels'], data['signals'], data['plate'],
                                  data['host'], data['port'], terminal)
+        # init the brain obj
         brain = RobotWorld.Brain(world, data['port'], terminal)
     except Exception as e:
         print(data['port'], 'Exception: ', e)
         exit(1)
 
+    # cycle
     while True:
+        # sense the environment
         environment = world.sense()
+        # compute an action
         action = brain.think(environment)
+        # do that action
         world.act(action)
 
 
 def main():
+    """
+    main: spawns a process for each declared unit
+    :return: none
+    """
     pool = multiprocessing.Pool(processes=len(dataList))  # start processes
     pool.map(job, dataList)  # we map each process to the input.
     pool.close()

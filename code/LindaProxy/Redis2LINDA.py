@@ -30,9 +30,6 @@ def makeAtomic(s):
     out = out.replace(':', 'J')
     return out
 
-# communication channel for Linda and to the DALI MAS
-# use it as a main for lindaproxy
-
 
 # used to send message to the DALI MAS
 L = lp.LindaProxy(host='127.0.0.1')

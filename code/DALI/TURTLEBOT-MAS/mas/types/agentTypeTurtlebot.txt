@@ -8,6 +8,7 @@
 :- dynamic depth/1. 
 :- dynamic load/1. 
 :- dynamic agentname/1.
+/* used to mark a recent obstacle avoidance */
 :- dynamic recentavoidance/1.
 :- assert(recentavoidance(0)).
 
@@ -72,12 +73,13 @@ turn :- vision(green,near), load(empty).
 turn :- vision(red,near), load(full).
 turnI :> answer('left:20').
 
-/* if the unit does not see a target */
+/* if the unit does not see a target (and previously the unit did not avoid an obstacle) */
 wanderAround :- vision(none,none), depth(far), recentavoidance(0).
 wanderAround :- vision(red,_), depth(far), load(full), \+ vision(green,_), \+ vision(red, center), recentavoidance(0).
 wanderAround :- vision(green,_), depth(far), load(empty), \+ vision(red,_), \+ vision(green, center), recentavoidance(0).
 wanderAroundI :> answer('left:20').
 
+/* if the unit does not see a target (and previously the unit did avoid an obstacle) */
 wanderAroundAfterAvoidance :- vision(none,none), depth(far), recentavoidance(1).
 wanderAroundAfterAvoidance :- vision(red,_), depth(far), load(full), \+ vision(green,_), \+ vision(red, center), recentavoidance(1).
 wanderAroundAfterAvoidance :- vision(green,_), depth(far), load(empty), \+ vision(red,_), \+ vision(green, center), recentavoidance(1).
