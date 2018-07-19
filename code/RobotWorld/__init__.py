@@ -111,7 +111,7 @@ class World(object):
                                                                          self.sensors_handles['kinect_rgb'],
                                                                          0,
                                                                          vrep.simx_opmode_blocking)
-        # retrieve vision sensor filtered image
+        # retrieve vision sensor filtered image (blob)
         result_blob, t0, t1 = vrep.simxReadVisionSensor(self._clientID,
                                                         self.sensors_handles['kinect_rgb'],
                                                         vrep.simx_opmode_blocking)
