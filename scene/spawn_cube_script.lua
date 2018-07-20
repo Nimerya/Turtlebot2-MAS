@@ -1,6 +1,6 @@
 --[[
     The following function was added in the main script of the scene: 
-    it create the package that will be load on one of the robot.
+    it create the package that will be loaded on one of the robots.
 --]]
 
 spawnCube=function(inInts,inFloats,inStrings,inBuffer)
