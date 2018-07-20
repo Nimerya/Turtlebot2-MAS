@@ -1,1 +1,1 @@
-The function inside 'spawn_cube_script.lua' is also (and must be) placed inside the scene's main lua script.
+The function inside `spawn_cube_script.lua` is also (and must be) placed inside the scene's main lua script.
