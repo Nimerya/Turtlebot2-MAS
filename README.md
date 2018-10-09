@@ -3,7 +3,7 @@ The fleet is composed by **Kobuki Turtlebot2** units, the scene represents a war
 
 Documentation can be found in */docs*
 
-Demo: https://youtu.be/1dfWthhUov
+Demo: https://youtu.be/1dfWthhUovk
 
 Authors:
 - https://gitlab.com/valent0ne
