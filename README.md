@@ -6,7 +6,7 @@ Documentation can be found in */docs*
 Demo: https://youtu.be/1dfWthhUovk
 
 Authors:
-- https://gitlab.com/valent0ne
-- https://gitlab.com/Nimerya
-- https://gitlab.com/AndreaPerel
+- https://github.com/valent0ne
+- https://github.com/Nimerya
+- https://github.com/AndreaPerel
 
