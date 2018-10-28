@@ -8,5 +8,5 @@ Demo: https://youtu.be/1dfWthhUovk
 Authors:
 - https://github.com/valent0ne
 - https://github.com/Nimerya
-- https://github.com/AndreaPerel
+- https://github.com/Happy-Killer
 
