@@ -6,7 +6,7 @@ Documentation can be found in */docs*
 Demo: https://youtu.be/1dfWthhUovk
 
 Authors:
-- https://github.com/valent0ne
-- https://github.com/Nimerya
-- https://github.com/Happy-Killer
+- Stefano Valentini https://github.com/valent0ne
+- Valentina Cecchini https://github.com/Nimerya
+- Andrea Perelli https://github.com/Happy-Killer
 
